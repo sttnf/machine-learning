@@ -8,7 +8,7 @@
     <option name="description" value="" />
   </component>
   <component name="KubernetesApiProvider">{}</component>
-  <component name="ProjectRootManager" version="2" languageLevel="JDK_24" project-jdk-name="Python 3.13 (MACHINE LEARNING)" project-jdk-type="Python SDK">
+  <component name="ProjectRootManager" version="2" languageLevel="JDK_24">
     <output url="file://$PROJECT_DIR$/out" />
   </component>
 </project>
