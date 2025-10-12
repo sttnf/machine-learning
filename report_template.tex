@@ -1,0 +1,173 @@
+\documentclass[11pt,a4paper]{article}
+
+% ---------- Packages ----------
+\usepackage[margin=2.5cm]{geometry}
+\usepackage{setspace}
+\usepackage{graphicx}
+\usepackage{caption}
+\usepackage{subcaption}
+\usepackage{booktabs}
+\usepackage{tabularx}
+\usepackage{array}
+\usepackage{longtable}
+\usepackage{float}
+\usepackage{hyperref}
+\usepackage{xcolor}
+\usepackage{titlesec}
+\usepackage{fancyhdr}
+\usepackage{listings}
+\usepackage{enumitem}
+
+% ---------- Python code style (listings) ----------
+\lstdefinestyle{pythonstyle}{
+  language=Python,
+  basicstyle=\ttfamily\small,
+  showstringspaces=false,
+  breaklines=true,
+  keywordstyle=\color{blue},
+  stringstyle=\color{teal!60!black},
+  commentstyle=\color{gray!70},
+  frame=single,
+  numbers=left,
+  numberstyle=\tiny\color{gray},
+  stepnumber=1,
+  numbersep=8pt
+}
+\lstset{style=pythonstyle}
+
+% ---------- Header / Footer ----------
+\pagestyle{fancy}
+\fancyhf{}
+\lhead{Template Laporan}
+\rhead{\thepage}
+\renewcommand{\headrulewidth}{0.4pt}
+
+% ---------- Section formatting ----------
+\titleformat{\section}{\normalfont\large\bfseries}{\thesection.}{0.5em}{}
+\titleformat{\subsection}{\normalfont\normalsize\bfseries}{\thesubsection\ }{0.5em}{}
+\titleformat{\subsubsection}{\normalfont\normalsize\bfseries}{\thesubsubsection\ }{0.5em}{}
+
+% ---------- Title block ----------
+\title{\textbf{Tugas 1: Judul Tugas}\\ \large (Ganti dengan Judul Laporan)}
+\author{%
+Nama Mahasiswa 1 (NIM 1)$^{1}$ \and
+Nama Mahasiswa 2 (NIM 2)$^{1}$ \and
+Nama Mahasiswa 3 (NIM 3)$^{2}$}
+\date{%
+$^{1}$Teknik Informatika, STT Terpadu Nurul Fikri, Depok\\%
+$^{2}$Sistem Informasi, STT Terpadu Nurul Fikri, Depok\\[4pt]
+\texttt{name@institution.edu} (ketua kelompok)
+}
+
+\begin{document}
+\maketitle
+\onehalfspacing
+
+% =====================================================================
+% NOTE UNTUK PENYUSUN (Step-by-step)
+% =====================================================================
+% 1) Isi metadata di \title, \author, dan \date sesuai kebutuhan.
+% 2) Tulis abstrak singkat pada bagian "Abstrak".
+% 3) Gunakan struktur bagian: Pendahuluan -> Metodologi -> Implementasi & Kode -> Hasil -> Pembahasan -> Kesimpulan -> Referensi.
+% 4) Tempelkan cuplikan kode Python pada bagian "Implementasi & Kode" menggunakan lingkungan \lstlisting.
+%    - Jika kode berasal dari Jupyter Notebook (.ipynb), ekspor ke .py via: File > Download as > Python (.py),
+%      lalu sertakan dengan \lstinputlisting{nama_berkas.py}
+% 5) Masukkan gambar (grafik/plot) yang dihasilkan Python ke folder yang sama, lalu \includegraphics[width=\linewidth]{nama_gambar.png}
+% 6) Perbarui tabel dan gambar sesuai data hasil analisis Anda.
+% 7) Gunakan sitasi gaya APA di teks (contoh di Word) dan tuliskan detail referensi di bagian Referensi.
+% =====================================================================
+
+\begin{abstract}
+Jelaskan isi abstrak pekerjaan / laporan singkat yang dikerjakan, berisi rangkuman apa yang telah dilakukan, data yang digunakan, metode singkat, dan hasil utama. Maksimal 150--200 kata.
+\end{abstract}
+
+\section{Pendahuluan}
+Ganti semua teks templat dengan teks artikel Anda. Bagian ini berisi latar belakang, tujuan, dan manfaat. Gunakan bahasa yang ringkas dan jelas. Paragraf pertama pada setiap bagian tidak menjorok; paragraf selanjutnya boleh menjorok jika diinginkan.
+
+\subsection{Rujukan Format (mengacu templat Word)}
+Struktur dan gaya tulisan pada templat ini mengikuti pola serupa dengan templat dokumen Word yang berisi judul, afiliasi, abstrak, bagian-bagian dengan subjudul, gambar, dan tabel.\footnote{Lihat templat Word yang disediakan dosen sebagai acuan struktur.}
+
+\section{Metodologi (Step-by-Step)}
+Uraikan alur pekerjaan Anda secara bertahap agar mudah direplikasi.
+
+\begin{enumerate}[label=\textbf{Langkah \arabic*:}, leftmargin=*, itemsep=4pt]
+  \item \textbf{Persiapan Lingkungan.} Siapkan Python 3.x, \texttt{pandas}, \texttt{numpy}, \texttt{matplotlib}, dan paket lain yang dibutuhkan.
+  \item \textbf{Pengambilan / Pemuatan Data.} Jelaskan sumber data dan cara memuatnya (CSV, Excel, database, atau API).
+  \item \textbf{Pembersihan Data.} Tangani nilai hilang, outlier, dan lakukan transformasi yang diperlukan.
+  \item \textbf{Eksplorasi Data (EDA).} Tampilkan statistik deskriptif, korelasi, dan visualisasi (histogram, boxplot, scatter plot).
+  \item \textbf{Pra-pemrosesan.} Normalisasi/standarisasi, encoding kategori, split train/val/test bila ada tahap pemodelan.
+  \item \textbf{Perancangan Metode/Model.} Jelaskan algoritme/metode yang digunakan dan alasan pemilihannya.
+  \item \textbf{Implementasi Kode Python.} Lampirkan potongan kode kunci. Simpan output penting (gambar, tabel) ke file untuk dilaporkan.
+  \item \textbf{Evaluasi Hasil.} Jelaskan metrik, uji, atau analisis statistik yang digunakan untuk mengevaluasi hasil.
+  \item \textbf{Kesimpulan dan Rekomendasi.} Tarik poin penting dan rekomendasi tindak lanjut.
+\end{enumerate}
+
+\section{Implementasi \& Kode (Python)}
+Di bawah ini contoh cara menempelkan potongan kode langsung di dokumen:
+\begin{lstlisting}[language=Python, caption={Contoh kode pemuatan dan ringkasan data.}]
+import pandas as pd
+
+# 1) Memuat data
+df = pd.read_csv("data.csv")  # ganti dengan path Anda
+
+# 2) Cek struktur
+print(df.shape)
+print(df.head())
+
+# 3) Statistik ringkas
+print(df.describe(include="all"))
+\end{lstlisting}
+
+Jika Anda sudah mengekspor Notebook ke berkas \texttt{analysis.py}, sertakan seluruh berkas kode dengan:
+\begin{verbatim}
+\lstinputlisting[language=Python, caption={Seluruh kode analisis Python.}]{analysis.py}
+\end{verbatim}
+
+\section{Hasil}
+Ringkas hasil utama yang diperoleh (tabel dan gambar). Pastikan setiap tabel/gambar diberi rujukan di dalam teks.
+
+\subsection{Gambar}
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=0.85\linewidth]{plot_hasil.png} % ganti dengan file Anda
+  \caption{Ganti teks ini dengan keterangan gambar. Letakkan gambar di dekat tempat gambar tersebut dikutip dalam teks.}
+  \label{fig:hasil-utama}
+\end{figure}
+
+\subsection{Tabel}
+\begin{table}[H]
+  \centering
+  \caption{Ganti teks ini dengan judul tabel.}
+  \begin{tabular}{@{}lllp{6.5cm}@{}}
+    \toprule
+    \textbf{Model} & \textbf{Produk Pertanian} & \textbf{Peneliti} & \textbf{Keterangan} \\
+    \midrule
+    Random Forest & Sawit & Suhendi & Prediksi Mg \\
+    XGBoost & Tebu, Padi & Sirojul Munir & Prediksi Panen \\
+    SVM & Brokoli, Beras & Zaki Imaduddin, Hilmi & Klasifikasi jenis \\
+    \bottomrule
+  \end{tabular}
+  \label{tab:contoh}
+\end{table}
+
+\section{Pembahasan}
+Bahas interpretasi temuan: apa arti angka/metrik yang diperoleh, validitas, keterbatasan, dan perbandingan dengan penelitian terkait (gunakan sitasi gaya APA dalam teks).
+
+\section{Kesimpulan}
+Tulis poin-poin penting yang menjawab tujuan penelitian/tugas dan saran pengembangan.
+
+\section*{Ucapan Terima Kasih (Opsional)}
+Sebutkan pihak yang membantu, pendanaan, atau sumber daya yang digunakan.
+
+\section*{Referensi}
+% Gunakan gaya APA dalam penulisan di daftar pustaka (bisa dengan BibTeX/biblatex).
+% Contoh sederhana manual:
+\begin{itemize}[leftmargin=*, itemsep=2pt]
+  \item Munir, S., Seminar, K. B., Sudradjat, Sukoco, H., \& Buono, A. (2022). The Use of Random Forest Regression for Estimating Leaf Nitrogen Content of Oil Palm Based on Sentinel 1-A Imagery. \textit{Information, 14}(1), 10. \url{https://doi.org/10.3390/info14010010}
+  \item Seminar, K. B., Imantho, H., Sudradjat, Yahya, S., Munir, S., Kaliana, I., Mei Haryadi, F., Noor Baroroh, A., Supriyanto, Handoyo, G. C., Kurnia Wijayanto, A., Ijang Wahyudin, C., Liyantono, Budiman, R., Bakir Pasaman, A., Rusiawan, D., \& Sulastri. (2024). PreciPalm: An Intelligent System for Calculating Macronutrient Status and Fertilizer Recommendations for Oil Palm on Mineral Soils Based on a Precision Agriculture Approach. \textit{Scientific World Journal, 2024}(1). \url{https://doi.org/10.1155/2024/1788726}
+\end{itemize}
+
+\vfill
+\noindent\rule{\linewidth}{0.4pt}\\
+\small \textbf{Catatan:} Format ini meniru struktur templat Word (judul, afiliasi, abstrak, heading, subheading, gambar, tabel) agar mudah dipahami dan diedit.
+\end{document}
