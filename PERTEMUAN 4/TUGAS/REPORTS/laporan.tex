@@ -1,0 +1,345 @@
+\documentclass[11pt,a4paper]{article}
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage[margin=2.5cm]{geometry}
+\usepackage{parskip}
+\usepackage{setspace}
+\usepackage{graphicx}
+\usepackage{booktabs}
+\usepackage{hyperref}
+\usepackage{xcolor}
+\usepackage{enumitem}
+\usepackage{listings}
+\usepackage{tcolorbox}
+
+% ---------------- Listings (Python) ----------------
+\lstdefinestyle{pythonstyle}{
+    language=Python,
+    basicstyle=\ttfamily\small,
+    showstringspaces=false,
+    breaklines=true,
+    keywordstyle=\color{blue!70!black},
+    stringstyle=\color{teal!60!black},
+    commentstyle=\color{gray!70},
+    frame=single,
+    numbers=left,
+    numberstyle=\tiny\color{gray},
+    stepnumber=1,
+    numbersep=8pt,
+    columns=fullflexible
+}
+\lstset{style=pythonstyle}
+
+% Custom tcolorbox for code
+\newtcolorbox{codebox}{
+    colback=gray!5!white,
+    colframe=gray!75!black,
+    title=Kode Python
+}
+
+\title{\textbf{Laporan Praktikum 4: Analisis Prediksi Calon Pembeli Mobil\\Menggunakan Logistic Regression}}
+\author{Rafa Al Razzak \\ NIM: 0110224155 \\ \texttt{0110224155@student.nurulfikri.ac.id}}
+\date{}
+
+\begin{document}
+    \maketitle
+    \onehalfspacing
+
+    \begin{abstract}
+        Dokumen ini menyajikan implementasi algoritma Logistic Regression untuk prediksi calon pembeli mobil menggunakan dataset yang berisi informasi penghasilan dan keputusan pembelian mobil. Analisis meliputi preprocessing data, eksplorasi data dengan visualisasi korelasi, pembagian dataset, pembuatan pipeline machine learning, pelatihan model, dan evaluasi performa menggunakan berbagai metrik klasifikasi. Model yang dihasilkan menunjukkan performa yang dapat dievaluasi melalui akurasi, precision, recall, F1-score, dan ROC AUC score. Implementasi menggunakan scikit-learn dengan pipeline yang mencakup standardisasi fitur numerik dan model Logistic Regression yang telah dioptimasi.
+    \end{abstract}
+
+
+    \section{Pendahuluan}
+    Prediksi calon pembeli mobil merupakan salah satu aplikasi penting dalam bidang marketing dan sales yang dapat membantu perusahaan dalam mengidentifikasi pelanggan potensial. Dalam praktikum ini, digunakan algoritma Logistic Regression yang merupakan metode supervised learning untuk klasifikasi biner. Dataset yang dianalisis berisi informasi penghasilan calon pembeli dan keputusan akhir pembelian mobil (Ya/Tidak).
+
+    Logistic Regression dipilih karena kemampuannya dalam memberikan probabilitas prediksi yang dapat diinterpretasi dengan mudah, serta performanya yang stabil untuk dataset dengan ukuran kecil hingga menengah. Implementasi dilakukan menggunakan Python dengan library scikit-learn, pandas, dan seaborn untuk visualisasi.
+
+
+    \section{Memuat dan Eksplorasi Dataset}
+    Dataset calon pembeli mobil dimuat dari file CSV yang berisi informasi dasar tentang penghasilan dan keputusan pembelian.
+
+    \begin{codebox}
+        \begin{lstlisting}[language=Python]
+import pandas as pd
+
+df = pd.read_csv("../DATA/calonpembelimobil.csv")
+df.head()
+        \end{lstlisting}
+    \end{codebox}
+
+    \noindent\textbf{Deskripsi Dataset.} Dataset berisi kolom-kolom yang mencakup ID, penghasilan calon pembeli, dan variabel target yang menunjukkan apakah seseorang membeli mobil atau tidak.
+
+
+    \section{Preprocessing Data}
+    Tahap preprocessing sangat penting untuk memastikan kualitas data sebelum digunakan untuk pelatihan model.
+
+    \begin{codebox}
+        \begin{lstlisting}[language=Python]
+# Mengecek missing values dan data duplikat
+df.isnull().sum()
+df.duplicated().sum()
+
+# Menghapus data duplikat
+df.drop_duplicates(inplace=True)
+
+# Menghapus kolom ID yang tidak relevan
+df.drop(columns=["ID"], inplace=True)
+
+# Menampilkan informasi dataset
+df.info()
+        \end{lstlisting}
+    \end{codebox}
+
+    \noindent\textbf{Langkah Preprocessing:}
+    \begin{enumerate}
+        \item Identifikasi dan penanganan missing values
+        \item Penghapusan data duplikat untuk menghindari bias
+        \item Penghapusan kolom ID yang tidak berkontribusi pada prediksi
+        \item Validasi struktur data final
+    \end{enumerate}
+
+
+    \section{Visualisasi Data}
+    Analisis korelasi dilakukan untuk memahami hubungan antar variabel dalam dataset.
+
+    \begin{codebox}
+        \begin{lstlisting}[language=Python]
+import seaborn as sns
+import matplotlib.pyplot as plt
+
+plt.figure(figsize=(8, 6))
+sns.heatmap(df.corr(numeric_only=True), annot=True, cmap="coolwarm",
+           fmt=".2f", linewidths=0.5)
+plt.title("Heatmap Korelasi Antar Variabel Numerik")
+plt.show()
+        \end{lstlisting}
+    \end{codebox}
+
+    \noindent\textbf{Interpretasi Heatmap.} Visualisasi korelasi membantu mengidentifikasi hubungan linear antara variabel numerik. Nilai korelasi berkisar antara -1 hingga 1, di mana nilai mendekati 1 menunjukkan korelasi positif yang kuat, dan nilai mendekati -1 menunjukkan korelasi negatif yang kuat.
+
+%    add the images
+    \begin{figure}[h!]
+        \centering
+        \includegraphics[width=0.6\textwidth]{../REPORTS/ASSETS/heatmap.png}
+        \caption{Heatmap Korelasi Antar Variabel Numerik}
+        \label{fig:heatmap}
+    \end{figure}
+
+
+    \section{Pembagian Dataset}
+    Dataset dibagi menjadi fitur independen (X) dan variabel target (y), kemudian dipisah menjadi set training dan testing.
+
+    \begin{codebox}
+        \begin{lstlisting}[language=Python]
+from sklearn.model_selection import train_test_split
+
+# Definisi fitur dan target
+X = df.drop(columns=["Beli_Mobil"])
+y = df["Beli_Mobil"]
+
+print("X shape:", X.shape)
+print("y shape:", y.shape)
+
+# Split dataset: 80% training, 20% testing
+X_train, X_test, y_train, y_test = train_test_split(
+    X, y, test_size=0.2, random_state=42, stratify=y
+)
+
+print("Training set:", X_train.shape, y_train.shape)
+print("Testing set:", X_test.shape, y_test.shape)
+        \end{lstlisting}
+    \end{codebox}
+
+    \noindent\textbf{Stratifikasi.} Parameter \texttt{stratify=y} memastikan proporsi kelas target konsisten antara training dan testing set, yang penting untuk dataset dengan distribusi kelas yang tidak seimbang.
+
+
+    \section{Pembuatan Pipeline Machine Learning}
+    Pipeline digunakan untuk mengintegrasikan preprocessing dan model dalam satu alur kerja yang konsisten.
+
+    \begin{codebox}
+        \begin{lstlisting}[language=Python]
+from sklearn.pipeline import Pipeline
+from sklearn.linear_model import LogisticRegression
+from sklearn.preprocessing import StandardScaler
+from sklearn.compose import ColumnTransformer
+
+# Definisi fitur numerik
+feature_num = ["Penghasilan"]
+target = "Beli_Mobil"
+
+# Preprocessing pipeline
+preprocess = ColumnTransformer(
+    transformers=[
+        ("num", StandardScaler(), feature_num),
+        ("bin", "passthrough", feature_num),
+    ],
+    remainder="drop"
+)
+
+# Model Logistic Regression
+model = LogisticRegression(
+    max_iter=1000, solver="lbfgs", class_weight="balanced", random_state=42
+)
+
+# Pipeline lengkap
+clf = Pipeline([
+    ("preprocess", preprocess),
+    ("model", model),
+])
+
+# Training model
+clf.fit(X_train, y_train)
+        \end{lstlisting}
+    \end{codebox}
+
+    \noindent\textbf{Konfigurasi Model:}
+    \begin{itemize}
+        \item \texttt{max\_iter=1000}: Maksimum iterasi untuk konvergensi
+        \item \texttt{solver="lbfgs"}: Algoritma optimasi yang efisien untuk dataset kecil
+        \item \texttt{class\_weight="balanced"}: Mengatasi ketidakseimbangan kelas secara otomatis
+        \item \texttt{random\_state=42}: Memastikan reproducibility hasil
+    \end{itemize}
+
+
+    \section{Evaluasi Model}
+    Model dievaluasi menggunakan berbagai metrik klasifikasi untuk memberikan gambaran komprehensif tentang performa.
+
+    \begin{codebox}
+        \begin{lstlisting}[language=Python]
+from sklearn.metrics import (accuracy_score, precision_score,
+                           recall_score, f1_score, roc_auc_score)
+
+# Prediksi
+y_pred = clf.predict(X_test)
+y_prob = clf.predict_proba(X_test)[:, 1]
+
+# Perhitungan metrik
+accuracy = accuracy_score(y_test, y_pred)
+precision = precision_score(y_test, y_pred, zero_division=0)
+recall = recall_score(y_test, y_pred, zero_division=0)
+f1 = f1_score(y_test, y_pred, zero_division=0)
+roc_auc = roc_auc_score(y_test, y_prob)
+
+print("Model Evaluation:")
+print(f"Accuracy: {accuracy:.4f}")
+print(f"Precision: {precision:.4f}")
+print(f"Recall: {recall:.4f}")
+print(f"F1 Score: {f1:.4f}")
+print(f"ROC AUC: {roc_auc:.4f}")
+        \end{lstlisting}
+    \end{codebox}
+
+    \noindent\textbf{Interpretasi Metrik:}
+    \begin{itemize}
+        \item \textbf{Accuracy}: Proporsi prediksi yang benar dari total prediksi
+        \item \textbf{Precision}: Proporsi true positive dari total prediksi positif
+        \item \textbf{Recall}: Proporsi true positive dari total actual positif
+        \item \textbf{F1 Score}: Harmonic mean dari precision dan recall
+        \item \textbf{ROC AUC}: Area under ROC curve, mengukur kemampuan diskriminasi model
+    \end{itemize}
+
+
+    \section{Visualisasi Evaluasi Model}
+    Confusion Matrix dan ROC Curve digunakan untuk visualisasi performa model.
+
+    \begin{codebox}
+        \begin{lstlisting}[language=Python]
+from sklearn.metrics import (ConfusionMatrixDisplay, confusion_matrix,
+                           RocCurveDisplay)
+
+# Confusion Matrix
+ConfusionMatrixDisplay(
+    confusion_matrix=confusion_matrix(y_test, y_pred),
+    display_labels=["Tidak Beli", "Beli"]
+).plot(values_format="d")
+plt.title("Confusion Matrix")
+plt.show()
+
+# ROC Curve
+RocCurveDisplay.from_estimator(
+    clf, X_test, y_test, name="Logistic Regression"
+)
+plt.title("ROC Curve")
+plt.show()
+        \end{lstlisting}
+    \end{codebox}
+
+    \noindent\textbf{Analisis Visual:}
+    \begin{enumerate}
+        \item \textbf{Confusion Matrix}: Menunjukkan distribusi prediksi benar dan salah untuk setiap kelas
+        \item \textbf{ROC Curve}: Memvisualisasikan trade-off antara True Positive Rate dan False Positive Rate
+    \end{enumerate}
+
+
+    \section{Classification Report dan Cross Validation}
+    Analisis mendalam menggunakan classification report dan validasi silang.
+
+    \begin{codebox}
+        \begin{lstlisting}[language=Python]
+from sklearn.metrics import classification_report
+from sklearn.model_selection import cross_val_score
+import numpy as np
+
+# Classification Report
+print(classification_report(
+    y_test, y_pred,
+    target_names=["Tidak Beli Mobil", "Beli Mobil"],
+    zero_division=0
+))
+
+# Cross Validation
+scores = cross_val_score(clf, X, y, cv=5)
+print(f"Skor tiap fold: {scores}")
+print(f"Rata-rata akurasi: {np.mean(scores):.4f}")
+print(f"Standar deviasi: {np.std(scores):.4f}")
+        \end{lstlisting}
+    \end{codebox}
+
+    \noindent\textbf{Cross Validation.} Teknik validasi dengan 5-fold cross validation memberikan estimasi performa yang lebih robust dengan menguji model pada berbagai subset data.
+
+
+    \section{Prediksi Data Baru}
+    Demonstrasi penggunaan model untuk memprediksi data baru.
+
+    \begin{codebox}
+        \begin{lstlisting}[language=Python]
+# Contoh data baru
+new_data = pd.DataFrame({
+    'Penghasilan': [30_000],
+})
+
+# Prediksi
+predictions = clf.predict(new_data)
+probabilities = clf.predict_proba(new_data)[:, 1]
+
+# Hasil
+result = new_data.copy()
+result['Prediksi'] = predictions
+result['Probabilitas'] = probabilities
+
+print(result)
+        \end{lstlisting}
+    \end{codebox}
+
+    \noindent\textbf{Interpretasi Prediksi.} Model memberikan prediksi biner (0/1) dan probabilitas kontinyu (0-1) yang dapat digunakan untuk pengambilan keputusan yang lebih nuansif.
+
+
+    \section{Kesimpulan}
+    Implementasi Logistic Regression untuk prediksi calon pembeli mobil telah berhasil dilakukan dengan tahapan yang sistematis. Model menunjukkan performa yang dapat dievaluasi melalui berbagai metrik klasifikasi.
+
+    \section{Referensi}
+    \noindent\textbf{Dataset Source:} Dataset Calon Pembeli Mobil (internal)
+
+    \noindent\textbf{Libraries Used:}
+    \begin{itemize}
+        \item Pandas: Data manipulation dan analysis
+        \item Scikit-learn: Machine learning algorithms dan tools
+        \item Seaborn \& Matplotlib: Data visualization
+        \item NumPy: Numerical computing
+    \end{itemize}
+
+    \noindent\textbf{GitHub Repository:}\\
+    \href{https://github.com/sttnf/machine-learning/PERTEMUAN\%204/TUGAS/NOTEBOOKS/main.ipynb}{\texttt{PERTEMUAN 4/TUGAS/NOTEBOOKS/main.ipynb}}
+
+\end{document}
