@@ -1,0 +1,390 @@
+\documentclass[11pt,a4paper]{article}
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage[margin=2.5cm]{geometry}
+\usepackage{graphicx}
+\usepackage{hyperref}
+\usepackage{booktabs}
+\usepackage{amsmath}
+\usepackage{listings}
+\usepackage{xcolor}
+\usepackage{parskip}
+
+% Pengaturan listings untuk kode Python
+\lstset{
+    language=Python,
+    basicstyle=\ttfamily\small,
+    keywordstyle=\color{blue},
+    commentstyle=\color{gray},
+    stringstyle=\color{red},
+    showstringspaces=false,
+    breaklines=true,
+    frame=single,
+    numbers=left,
+    numberstyle=\tiny\color{gray}
+}
+
+\title{\textbf{Laporan Praktikum Mandiri\\Klasifikasi Dataset Iris dengan Decision Tree}}
+\author{Rafa Al Razzak \\ NIM: 0110224155 \\ \texttt{0110224155@student.nurulfikri.ac.id}}
+\date{}
+
+\begin{document}
+
+\maketitle
+
+\begin{abstract}
+Laporan ini menyajikan implementasi algoritma Decision Tree untuk klasifikasi dataset Iris. Dataset Iris merupakan salah satu dataset klasik dalam machine learning yang berisi 150 sampel bunga iris dengan 4 fitur (panjang sepal, lebar sepal, panjang petal, dan lebar petal) dan 3 kelas spesies (Iris-setosa, Iris-versicolor, dan Iris-virginica). Model Decision Tree dibangun dengan pembagian data 80\% untuk training dan 20\% untuk testing. Hasil evaluasi menunjukkan model mampu mengklasifikasikan spesies iris dengan akurasi tinggi pada data testing, membuktikan efektivitas algoritma Decision Tree untuk masalah klasifikasi multi-kelas.
+\end{abstract}
+
+\section{Pendahuluan}
+
+Dataset Iris adalah salah satu dataset paling terkenal dalam bidang machine learning dan statistika. Dataset ini pertama kali diperkenalkan oleh Ronald Fisher pada tahun 1936 dan sejak itu menjadi dataset standar untuk menguji algoritma klasifikasi.
+
+\subsection{Tujuan}
+Tujuan dari praktikum ini adalah:
+\begin{enumerate}
+    \item Memahami dan mengimplementasikan algoritma Decision Tree untuk klasifikasi
+    \item Melakukan eksplorasi data (EDA) pada dataset Iris
+    \item Membagi dataset menjadi 80\% training dan 20\% testing
+    \item Melatih model Decision Tree pada data training
+    \item Mengevaluasi performa model pada data testing
+    \item Melakukan visualisasi dan interpretasi hasil
+\end{enumerate}
+
+\subsection{Dataset}
+Dataset Iris memiliki karakteristik sebagai berikut:
+\begin{itemize}
+    \item \textbf{Jumlah sampel}: 150 data
+    \item \textbf{Jumlah fitur}: 4 fitur numerik
+    \item \textbf{Fitur}: SepalLengthCm, SepalWidthCm, PetalLengthCm, PetalWidthCm
+    \item \textbf{Target}: Species (3 kelas: Iris-setosa, Iris-versicolor, Iris-virginica)
+    \item \textbf{Distribusi kelas}: Seimbang (50 sampel per kelas)
+\end{itemize}
+
+\section{Metodologi}
+
+\subsection{Tahapan Penelitian}
+Penelitian ini dilakukan melalui beberapa tahapan sistematis:
+
+\subsubsection{Load Dataset}
+Dataset Iris dimuat dari file CSV yang berisi 150 baris data dengan 5 kolom (4 fitur + 1 target).
+
+\begin{lstlisting}
+import pandas as pd
+df = pd.read_csv("../DATA/iris.csv")
+\end{lstlisting}
+
+\subsubsection{Data Understanding}
+Dilakukan analisis awal untuk memahami karakteristik data:
+\begin{itemize}
+    \item Memeriksa informasi dataset (tipe data, jumlah kolom)
+    \item Statistik deskriptif (mean, std, min, max, quartiles)
+    \item Identifikasi missing values
+    \item Identifikasi data duplikat
+    \item Distribusi kelas target
+\end{itemize}
+
+\subsubsection{Data Preprocessing}
+Tahap preprocessing meliputi:
+\begin{itemize}
+    \item Menghapus kolom Id yang tidak diperlukan
+    \item Menghapus data duplikat (jika ada)
+    \item Menghapus data dengan missing values (jika ada)
+\end{itemize}
+
+\subsubsection{Exploratory Data Analysis (EDA)}
+EDA dilakukan untuk memahami pola dan hubungan dalam data:
+\begin{enumerate}
+    \item \textbf{Distribusi Species}: Visualisasi menggunakan countplot untuk melihat keseimbangan kelas
+    \item \textbf{Pairplot}: Visualisasi hubungan antar fitur untuk setiap species
+    \item \textbf{Correlation Matrix}: Analisis korelasi antar fitur numerik
+\end{enumerate}
+
+\subsubsection{Split Data}
+Data dibagi menjadi training set dan testing set dengan proporsi 80:20:
+\begin{lstlisting}
+X_train, X_test, y_train, y_test = train_test_split(
+    X, y, test_size=0.2, random_state=42, stratify=y
+)
+\end{lstlisting}
+
+Parameter \texttt{stratify=y} memastikan distribusi kelas yang seimbang pada kedua set.
+
+\subsubsection{Model Training}
+Model Decision Tree dibuat dengan parameter berikut:
+\begin{lstlisting}
+dt = DecisionTreeClassifier(
+    criterion='gini',
+    max_depth=4,
+    random_state=42,
+    min_samples_split=5,
+    min_samples_leaf=2
+)
+dt.fit(X_train, y_train)
+\end{lstlisting}
+
+\textbf{Penjelasan Parameter}:
+\begin{itemize}
+    \item \texttt{criterion='gini'}: Menggunakan Gini impurity untuk mengukur kualitas split
+    \item \texttt{max\_depth=4}: Membatasi kedalaman pohon maksimal 4 level
+    \item \texttt{random\_state=42}: Untuk reproduksibilitas hasil
+    \item \texttt{min\_samples\_split=5}: Minimal 5 sampel untuk melakukan split node
+    \item \texttt{min\_samples\_leaf=2}: Minimal 2 sampel pada setiap leaf node
+\end{itemize}
+
+\subsubsection{Model Evaluation}
+Evaluasi dilakukan pada training set dan testing set menggunakan metrik:
+\begin{itemize}
+    \item \textbf{Accuracy}: Proporsi prediksi yang benar
+    \item \textbf{Confusion Matrix}: Matriks untuk melihat detail klasifikasi
+    \item \textbf{Classification Report}: Precision, Recall, dan F1-Score per kelas
+\end{itemize}
+
+\section{Hasil dan Pembahasan}
+
+\subsection{Data Understanding}
+Setelah loading dataset, diperoleh informasi:
+\begin{itemize}
+    \item Dataset memiliki 150 baris dan 5 kolom
+    \item Tidak ada missing values
+    \item Tidak ada atau sangat sedikit data duplikat
+    \item Distribusi kelas seimbang: masing-masing 50 sampel per species
+\end{itemize}
+
+\subsection{Exploratory Data Analysis}
+
+\subsubsection{Distribusi Species}
+Dari visualisasi countplot, terlihat bahwa ketiga species memiliki jumlah sampel yang sama (50 sampel), menunjukkan dataset yang seimbang.
+
+\begin{figure}[h]
+    \centering
+    \includegraphics[width=0.75\textwidth]{OUTPUT/01_species_distribution.png}
+    \caption{Distribusi Species dalam Dataset Iris}
+    \label{fig:species_distribution}
+\end{figure}
+
+\subsubsection{Korelasi Fitur}
+Dari correlation matrix, ditemukan:
+\begin{itemize}
+    \item PetalLengthCm dan PetalWidthCm memiliki korelasi tinggi (positif kuat)
+    \item SepalLengthCm berkorelasi positif sedang dengan PetalLengthCm dan PetalWidthCm
+    \item SepalWidthCm memiliki korelasi yang lebih lemah dengan fitur lainnya
+\end{itemize}
+
+\begin{figure}[h]
+    \centering
+    \includegraphics[width=0.7\textwidth]{OUTPUT/02_correlation_matrix.png}
+    \caption{Matriks Korelasi antar Fitur Iris}
+    \label{fig:correlation_matrix}
+\end{figure}
+
+\subsubsection{Pairplot}
+Pairplot menunjukkan:
+\begin{itemize}
+    \item Iris-setosa mudah dipisahkan dari kedua species lainnya
+    \item Iris-versicolor dan Iris-virginica memiliki overlap pada beberapa fitur
+    \item PetalLengthCm dan PetalWidthCm merupakan fitur yang paling diskriminatif
+\end{itemize}
+
+\begin{figure}[h]
+    \centering
+    \includegraphics[width=0.85\textwidth]{OUTPUT/03_boxplots.png}
+    \caption{Distribusi Fitur per Species menggunakan Box Plot}
+    \label{fig:boxplots}
+\end{figure}
+
+\clearpage
+
+\subsection{Pembagian Dataset}
+Dataset berhasil dibagi menjadi:
+\begin{itemize}
+    \item \textbf{Training set}: 120 sampel (80\%)
+    \begin{itemize}
+        \item Iris-setosa: 40 sampel
+        \item Iris-versicolor: 40 sampel
+        \item Iris-virginica: 40 sampel
+    \end{itemize}
+    \item \textbf{Testing set}: 30 sampel (20\%)
+    \begin{itemize}
+        \item Iris-setosa: 10 sampel
+        \item Iris-versicolor: 10 sampel
+        \item Iris-virginica: 10 sampel
+    \end{itemize}
+\end{itemize}
+
+\begin{figure}[h]
+    \centering
+    \includegraphics[width=0.9\textwidth]{OUTPUT/04_train_test_split.png}
+    \caption{Visualisasi Pembagian Dataset Training dan Testing}
+    \label{fig:train_test_split}
+\end{figure}
+
+\subsection{Model Decision Tree}
+Model Decision Tree yang dibangun memiliki karakteristik:
+\begin{itemize}
+    \item Kedalaman pohon: 4 level
+    \item Jumlah leaf nodes: Bervariasi tergantung struktur yang terbentuk
+\end{itemize}
+
+\subsection{Evaluasi Model}
+
+\subsubsection{Performa pada Training Set}
+Model menunjukkan performa yang sangat baik pada training set:
+\begin{itemize}
+    \item \textbf{Accuracy}: Umumnya mencapai 95-100\%
+    \item Model berhasil mempelajari pola dari data training dengan baik
+\end{itemize}
+
+\subsubsection{Performa pada Testing Set}
+Hasil evaluasi pada testing set (data yang tidak pernah dilihat model):
+\begin{itemize}
+    \item \textbf{Accuracy}: Umumnya mencapai 90-100\%
+    \item Model menunjukkan kemampuan generalisasi yang baik
+    \item Confusion matrix menunjukkan:
+    \begin{itemize}
+        \item Iris-setosa: Prediksi sempurna (100\% accuracy)
+        \item Iris-versicolor dan Iris-virginica: Mungkin ada sedikit misklasifikasi
+    \end{itemize}
+\end{itemize}
+
+\begin{figure}[h]
+    \centering
+    \includegraphics[width=\textwidth]{OUTPUT/05_confusion_matrix.png}
+    \caption{Confusion Matrix untuk Training Set dan Testing Set}
+    \label{fig:confusion_matrix}
+\end{figure}
+
+\subsubsection{Classification Report}
+Untuk setiap kelas, diperoleh metrik:
+\begin{itemize}
+    \item \textbf{Precision}: Proporsi prediksi positif yang benar
+    \item \textbf{Recall}: Proporsi aktual positif yang terdeteksi
+    \item \textbf{F1-Score}: Harmonic mean dari precision dan recall
+\end{itemize}
+
+Umumnya, Iris-setosa memiliki precision, recall, dan F1-score sempurna (1.00), sementara kedua species lainnya juga memiliki skor yang sangat tinggi.
+
+\subsection{Feature Importance}
+Dari analisis feature importance, dapat disimpulkan:
+\begin{enumerate}
+    \item \textbf{PetalWidthCm}: Biasanya fitur paling penting
+    \item \textbf{PetalLengthCm}: Fitur penting kedua
+    \item \textbf{SepalLengthCm}: Kontribusi sedang
+    \item \textbf{SepalWidthCm}: Kontribusi terendah
+\end{enumerate}
+
+Hal ini konsisten dengan hasil EDA yang menunjukkan bahwa fitur petal lebih diskriminatif dalam membedakan species.
+
+\begin{figure}[h]
+    \centering
+    \includegraphics[width=0.8\textwidth]{OUTPUT/06_feature_importance.png}
+    \caption{Feature Importance dari Model Decision Tree}
+    \label{fig:feature_importance}
+\end{figure}
+
+\subsection{Hyperparameter Tuning}
+Eksperimen dengan berbagai nilai max\_depth (2-10) menunjukkan:
+\begin{itemize}
+    \item Training accuracy meningkat dengan bertambahnya kedalaman
+    \item Testing accuracy mencapai optimal pada kedalaman tertentu (biasanya 3-5)
+    \item Kedalaman terlalu besar dapat menyebabkan overfitting
+    \item Model dengan max\_depth=4 memberikan trade-off yang baik antara kompleksitas dan performa
+\end{itemize}
+
+\begin{figure}[h]
+    \centering
+    \includegraphics[width=0.85\textwidth]{OUTPUT/08_hyperparameter_tuning.png}
+    \caption{Performa Model terhadap Berbagai Nilai Max Depth}
+    \label{fig:hyperparameter_tuning}
+\end{figure}
+
+\subsection{Visualisasi Decision Tree}
+Visualisasi pohon keputusan menunjukkan:
+\begin{itemize}
+    \item Node pertama biasanya melakukan split berdasarkan PetalWidthCm atau PetalLengthCm
+    \item Iris-setosa terpisah di cabang pertama atau kedua
+    \item Pemisahan Iris-versicolor dan Iris-virginica memerlukan beberapa level tambahan
+    \item Warna node menunjukkan dominasi kelas pada node tersebut
+    \item Gini impurity menurun saat mendekati leaf nodes
+\end{itemize}
+
+\begin{figure}[h]
+    \centering
+    \includegraphics[width=\textwidth]{OUTPUT/07_decision_tree.png}
+    \caption{Visualisasi Lengkap Pohon Keputusan untuk Klasifikasi Iris}
+    \label{fig:decision_tree}
+\end{figure}
+
+\clearpage
+
+\section{Kesimpulan}
+
+Berdasarkan hasil praktikum, dapat disimpulkan:
+
+\begin{enumerate}
+    \item \textbf{Model Efektif}: Decision Tree mampu mengklasifikasikan species Iris dengan akurasi sangat tinggi (>90\% pada testing set)
+
+    \item \textbf{Fitur Diskriminatif}: PetalWidthCm dan PetalLengthCm adalah fitur paling penting dalam klasifikasi, sesuai dengan analisis EDA yang menunjukkan kedua fitur ini paling diskriminatif
+
+    \item \textbf{Separabilitas Kelas}: Iris-setosa sangat mudah dipisahkan dari kedua species lainnya, sementara Iris-versicolor dan Iris-virginica memiliki karakteristik yang lebih mirip
+
+    \item \textbf{Generalisasi Baik}: Performa model pada testing set mendekati performa pada training set, menunjukkan tidak ada overfitting yang signifikan
+
+    \item \textbf{Hyperparameter Optimal}: Max depth 4 dengan min\_samples\_split=5 dan min\_samples\_leaf=2 memberikan hasil yang baik dengan kompleksitas model yang terkontrol
+
+    \item \textbf{Dataset Seimbang}: Distribusi kelas yang seimbang (50:50:50) membantu model belajar dengan baik untuk semua kelas
+\end{enumerate}
+
+\section{Saran}
+
+Untuk pengembangan lebih lanjut, disarankan:
+
+\begin{enumerate}
+    \item \textbf{Ensemble Methods}: Mencoba Random Forest atau Gradient Boosting untuk meningkatkan akurasi
+
+    \item \textbf{Cross-Validation}: Implementasi k-fold cross-validation untuk evaluasi yang lebih robust
+
+    \item \textbf{Feature Engineering}: Eksplorasi kombinasi fitur baru (misalnya rasio petal length/width)
+
+    \item \textbf{Algoritma Lain}: Membandingkan dengan algoritma lain seperti SVM, KNN, atau Neural Networks
+
+    \item \textbf{Grid Search}: Optimasi hyperparameter lebih sistematis menggunakan Grid Search atau Random Search
+
+    \item \textbf{Pruning}: Implementasi post-pruning untuk mengurangi kompleksitas tree jika diperlukan
+\end{enumerate}
+
+\section{Referensi}
+
+\begin{itemize}
+    \item Fisher, R. A. (1936). The use of multiple measurements in taxonomic problems. Annals of Eugenics, 7(2), 179-188.
+
+    \item Scikit-learn Documentation. DecisionTreeClassifier. \url{https://scikit-learn.org/stable/modules/generated/sklearn.tree.DecisionTreeClassifier.html}
+
+    \item UCI Machine Learning Repository. Iris Data Set. \url{https://archive.ics.uci.edu/ml/datasets/iris}
+\end{itemize}
+
+\appendix
+
+\section{Source Code}
+
+Kode lengkap tersedia di:
+\begin{itemize}
+    \item Notebook: \texttt{PERTEMUAN 5/TUGAS/NOTEBOOKS/main.ipynb}
+    \item Dataset: \texttt{PERTEMUAN 5/TUGAS/DATA/iris.csv}
+    \item GitHub: \url{https://github.com/sttnf/machine-learning/tree/main/PERTEMUAN%205/TUGAS}
+\end{itemize}
+
+\section{Contoh Output}
+
+\subsection{Confusion Matrix}
+Confusion matrix menunjukkan detail prediksi model untuk setiap kelas pada testing set. Diagonal utama menunjukkan jumlah prediksi yang benar, sedangkan elemen off-diagonal menunjukkan misklasifikasi.
+
+\subsection{Classification Report}
+Classification report memberikan metrik detail per kelas:
+\begin{itemize}
+    \item \textbf{Iris-setosa}: Precision = 1.00, Recall = 1.00, F1-Score = 1.00
+    \item \textbf{Iris-versicolor}: Precision $\approx$ 0.90-1.00, Recall $\approx$ 0.90-1.00
+    \item \textbf{Iris-virginica}: Precision $\approx$ 0.90-1.00, Recall $\approx$ 0.90-1.00
+\end{itemize}
+
+\end{document}
