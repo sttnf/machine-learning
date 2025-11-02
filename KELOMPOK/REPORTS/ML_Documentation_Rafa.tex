@@ -1,0 +1,148 @@
+\documentclass[11pt,a4paper]{article}
+
+% -------- Encoding & layout --------
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage[margin=2.5cm]{geometry}
+\usepackage{parskip}
+\usepackage{setspace}
+\usepackage{float}
+\usepackage{titlesec}
+\usepackage{authblk}
+\renewcommand\Authfont{\large\bfseries}
+\renewcommand\Affilfont{\small\normalfont}
+\setlength{\affilsep}{0.4em}
+\renewcommand\Authsep{ \quad}
+\renewcommand\Authand{ \quad}
+\renewcommand\Authands{ \quad}
+
+% -------- Math & figures --------
+\usepackage{amsmath,amssymb}
+\usepackage{graphicx}
+\usepackage{booktabs}
+\usepackage{enumitem}
+\usepackage{caption}
+\usepackage{xcolor}
+\usepackage{listings}
+
+% -------- Hyperref --------
+\usepackage{hyperref}
+\hypersetup{
+    colorlinks=true,
+    linkcolor=blue!60!black,
+    urlcolor=blue!60!black,
+    citecolor=blue!60!black,
+    pdfauthor={Rafa Al Razzak et al.},
+    pdftitle={Dokumentasi Kode: 18 Studi Kasus Machine Learning},
+    pdfsubject={Regresi, Klasifikasi, Klastering, Association Rules},
+    pdfkeywords={Machine Learning, Scikit-learn, Python, Documentation}
+}
+
+% -------- Section spacing --------
+\titlespacing*{\section}{0pt}{6pt}{2pt}
+\titlespacing*{\subsection}{0pt}{4pt}{2pt}
+\titlespacing*{\subsubsection}{0pt}{3pt}{1pt}
+
+% -------- Listings (Python) --------
+\lstdefinestyle{pythonstyle}{
+    language=Python,
+    basicstyle=\ttfamily\small,
+    showstringspaces=false,
+    breaklines=true,
+    keywordstyle=\color{blue!70!black},
+    stringstyle=\color{teal!60!black},
+    commentstyle=\color{gray!70},
+    frame=single,
+    rulecolor=\color{black!20},
+    frameround=ffff,
+    framesep=6pt,
+    numbers=left,
+    numberstyle=\tiny\color{gray},
+    stepnumber=1,
+    numbersep=8pt,
+    columns=fullflexible
+}
+\lstset{style=pythonstyle}
+\captionsetup[lstlisting]{labelfont=bf,textfont=bf}
+
+% -------- APA references (choose one) --------
+% Option A (recommended): biblatex-apa (requires biber)
+% \usepackage[style=apa,natbib=true,backend=biber]{biblatex}
+% \DeclareLanguageMapping{english}{english-apa}
+% \addbibresource{references.bib}
+
+% Option B: Manual references (no extra tooling)
+
+% -------- Meta --------
+\title{\textbf{Algoritma Machine Learning}\\
+\large (Regression, Classification, Clustering, Association Rules)}
+\author[1]{Rafa Al Razzak}
+\author[2]{Oryza Ayunda Putri}
+\author[3]{Adelia Juliani}
+\affil[1,2,3]{Program Studi Teknik Informatika, STT Terpadu Nurul Fikri, Depok, Indonesia\\
+\texttt{0110224155@student.nurulfikri.ac.id} \quad
+\texttt{0110224030@student.nurulfikri.ac.id} \quad
+\texttt{0110224113@student.nurulfikri.ac.id}}
+\date{}
+
+\begin{document}
+    \maketitle
+    \onehalfspacing
+    \begin{abstract}
+        Dokumen ini adalah \emph{code documentation} yang terstruktur untuk 18 studi kasus Machine Learning (5 regresi, 5 klasifikasi, 5 klastering, 3 association rules). Seluruh data sintetis (reproducible). Setiap blok kode dilengkapi tujuan, langkah, dan catatan implementasi. Visualisasi ringkas pada notebook (matplotlib).
+    \end{abstract}
+
+    \tableofcontents
+    \vspace{6pt}\hrule\vspace{6pt}
+
+
+    \section{Cara Pakai}
+    \begin{enumerate}[leftmargin=1.2em]
+        \item \textbf{Buka} notebook: \texttt{ML\_Learning\_Types\_Overview.ipynb} lalu \texttt{ML\_18\_Cases\_Demo.ipynb}.
+        \item \textbf{Jalankan berurutan:} Setup $\rightarrow$ Regresi $\rightarrow$ Klasifikasi $\rightarrow$ Klastering $\rightarrow$ Association.
+        \item \textbf{Eksperimen:} Ubah jumlah data (\texttt{n}) dan hiperparameter model; semua deterministik (\texttt{np.random.seed(42)}).
+    \end{enumerate}
+
+
+    \section{Definisi Singkat (Point 1 Tugas)}
+
+    \subsection{Supervised Learning}
+    Belajar pemetaan input $\to$ output dari \textbf{data berlabel}. Tahap: (1) \textit{framing} masalah, (2) koleksi/label data, (3) train/val split, (4) pelatihan model, (5) evaluasi (mis. R$^2$, akurasi), (6) \textit{deployment}, (7) \textit{monitoring}.
+
+    \subsection{Unsupervised Learning}
+    Menemukan struktur dari \textbf{data tak berlabel}. Tahap: (1) framing, (2) koleksi, (3) skala/FE, (4) algoritma (KMeans/DBSCAN), (5) validasi internal (silhouette), (6) interpretasi, (7) pemanfaatan.
+
+    \subsection{Reinforcement Learning}
+    Agen belajar melalui interaksi lingkungan untuk memaksimalkan \textbf{reward} kumulatif. Tahap: (1) definisi MDP, (2) pilih pendekatan kebijakan/nilai, (3) eksplorasi, (4) evaluasi/perbaikan kebijakan, (5) iterasi hingga konvergen, (6) deployment dan monitoring.
+
+
+    \section{18 Kasus (Point 2 Tugas)}
+    Lihat notebook \texttt{ML\_18\_Cases\_Demo.ipynb} untuk kode lengkap, metrik, dan ringkasan visual.
+
+
+    \section{Sistematika Laporan (Point 3 Tugas)}
+
+    \subsection{Struktur}
+    \begin{enumerate}[leftmargin=1.2em]
+        \item Pendahuluan \quad (latar belakang, tujuan)
+        \item Dasar Teori \quad (definisi SL/UL/RL)
+        \item Metodologi \quad (data, pipeline, metrik)
+        \item Hasil \& Pembahasan \quad (tabel/plot per kasus)
+        \item Kesimpulan \& Saran
+        \item Referensi (format APA)
+    \end{enumerate}
+
+    \subsection{Contoh Sitasi APA (manual)}
+    \begin{itemize}[leftmargin=1.2em]
+        \item Breiman, L. (2001). Random forests. \textit{Machine Learning}, 45(1), 5–32.
+        \item Cortes, C., \& Vapnik, V. (1995). Support-vector networks. \textit{Machine Learning}, 20, 273–297.
+        \item MacQueen, J. (1967). Some methods for classification and analysis of multivariate observations. In \textit{Proc. 5th Berkeley Symposium} (pp. 281–297).
+        \item Ester, M., Kriegel, H.-P., Sander, J., \& Xu, X. (1996). A density-based algorithm for discovering clusters. In \textit{KDD} (pp. 226–231).
+        \item Tibshirani, R. (1996). Regression shrinkage and selection via the lasso. \textit{JRSS B}, 58(1), 267–288.
+        \item Hoerl, A. E., \& Kennard, R. W. (1970). Ridge regression. \textit{Technometrics}, 12(1), 55–67.
+    \end{itemize}
+
+% If using biblatex:
+% \printbibliography
+
+\end{document}
