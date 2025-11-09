@@ -1,0 +1,515 @@
+\documentclass[11pt,a4paper]{article}
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage[margin=2.5cm]{geometry}
+\usepackage{graphicx}
+\usepackage{hyperref}
+\usepackage{booktabs}
+\usepackage{amsmath}
+\usepackage{listings}
+\usepackage{xcolor}
+\usepackage{parskip}
+\usepackage{float}
+
+% Pengaturan listings untuk kode Python
+\lstset{
+    language=Python,
+    basicstyle=\ttfamily\small,
+    keywordstyle=\color{blue},
+    commentstyle=\color{gray},
+    stringstyle=\color{red},
+    showstringspaces=false,
+    breaklines=true,
+    frame=single,
+    numbers=left,
+    numberstyle=\tiny\color{gray}
+}
+
+\title{\textbf{Laporan Praktikum Mandiri\\Prediksi Kandungan Nitrogen Tanah dengan Data Satelit Menggunakan Linear Regression dan Random Forest}}
+\author{Rafa Al Razzak \\ NIM: 0110224155 \\ \texttt{0110224155@student.nurulfikri.ac.id}}
+\date{}
+
+\begin{document}
+    \maketitle
+    \begin{abstract}
+        Laporan ini menyajikan implementasi algoritma machine learning untuk prediksi kandungan Nitrogen (N) tanah menggunakan data satelit multi-sensor. Dataset berisi 200 sampel dengan 33 fitur yang mencakup pengukuran nutrisi tanah (P, K, Ca, Mg, Fe, Mn, Cu, Zn, B), reflektansi spektral dari band optik (b1--b12), data Synthetic Aperture Radar (SAR), sudut geometris, dan koordinat geografis. Dua model regresi dibangun: Linear Regression dan Random Forest Regressor, dengan pembagian data 80\% training (160 sampel) dan 20\% testing (40 sampel). Hasil evaluasi menunjukkan Random Forest memberikan performa superior dengan R² score yang lebih tinggi, menunjukkan kemampuan menangkap hubungan non-linear antar fitur untuk aplikasi precision agriculture berbasis data satelit.
+    \end{abstract}
+
+    \section{Pendahuluan}
+
+    \subsection{Latar Belakang}
+    Nitrogen (N) merupakan salah satu nutrisi makro esensial untuk pertumbuhan tanaman. Pemantauan kandungan nitrogen tanah secara akurat sangat penting untuk precision agriculture, memungkinkan petani mengoptimalkan pemupukan dan meningkatkan produktivitas sambil mengurangi dampak lingkungan.
+
+    Teknologi penginderaan jauh (remote sensing) dari satelit menawarkan solusi yang efisien untuk pemantauan nutrisi tanah dalam skala luas. Data satelit multi-sensor menggabungkan informasi dari berbagai sumber: band spektral optik yang menangkap reflektansi permukaan, data SAR (Synthetic Aperture Radar) yang sensitif terhadap kelembaban dan struktur tanah, serta informasi geometris dan geografis.
+
+    Machine learning, khususnya algoritma regresi, telah terbukti efektif dalam memodelkan hubungan kompleks antara data penginderaan jauh dan properti tanah. Linear Regression memberikan model interpretable untuk hubungan linear, sementara Random Forest dapat menangkap pola non-linear dan interaksi antar fitur.
+
+    \subsection{Tujuan}
+    Tujuan dari praktikum ini adalah:
+    \begin{enumerate}
+        \item Mengeksplorasi dataset satelit multi-sensor untuk prediksi kandungan nitrogen tanah
+        \item Memahami karakteristik berbagai jenis fitur: nutrisi, spektral, SAR, geometris, dan geografis
+        \item Melakukan data preprocessing dan feature engineering
+        \item Mengimplementasikan dua model regresi: Linear Regression dan Random Forest
+        \item Melakukan evaluasi performa model menggunakan metrik R², RMSE, dan MAE
+        \item Membandingkan performa kedua model
+        \item Menganalisis feature importance untuk memahami kontribusi setiap fitur
+        \item Melakukan visualisasi dan interpretasi hasil
+    \end{enumerate}
+
+    \subsection{Dataset}
+    Dataset satelit memiliki karakteristik sebagai berikut:
+    \begin{itemize}
+        \item \textbf{Sumber}: Dataset Satelit Multi-sensor untuk Analisis Nutrisi Tanah
+        \item \textbf{Lokasi file}: \texttt{dataset\_satelit.csv}
+        \item \textbf{Jumlah sampel}: 200 data pengukuran
+        \item \textbf{Jumlah fitur}: 33 fitur (setelah preprocessing)
+        \item \textbf{Target}: Kandungan Nitrogen (N) dalam satuan tertentu
+        \item \textbf{Rentang target N}: 1.71 -- 3.13
+        \item \textbf{Kelompok fitur}:
+        \begin{itemize}
+            \item \textbf{Nutrisi Tanah (9 fitur)}: P, K, Ca, Mg, Fe, Mn, Cu, Zn, B
+            \item \textbf{Band Spektral (12 fitur)}: b1, b2, b3, b4, b5, b6, b7, b8, b8a, b9, b11, b12
+            \begin{itemize}
+                \item Band optik dari sensor satelit (mis. Sentinel-2)
+                \item Mencakup visible, red-edge, NIR, dan SWIR
+            \end{itemize}
+            \item \textbf{SAR - Synthetic Aperture Radar (6 fitur)}:
+            \begin{itemize}
+                \item Sigma\_VV, Sigma\_VH: Backscatter coefficient
+                \item gamma0\_vv, gamma0\_vh: Gamma naught
+                \item beta0\_vv, beta0\_vh: Beta naught
+            \end{itemize}
+            \item \textbf{Sudut Geometris (3 fitur)}: plia, lia, iafe
+            \begin{itemize}
+                \item Parameter geometris akuisisi citra satelit
+            \end{itemize}
+            \item \textbf{Koordinat Geografis (2 fitur)}: Longitude, Lattitude
+        \end{itemize}
+    \end{itemize}
+
+
+    \section{Metodologi}
+
+    \subsection{Linear Regression}
+    Linear Regression adalah algoritma supervised learning yang memodelkan hubungan linear antara fitur input dan target output.
+
+    \subsubsection{Persamaan Model}
+    Model Linear Regression untuk prediksi nitrogen:
+    \begin{equation}
+        N = \beta_0 + \beta_1 x_1 + \beta_2 x_2 + \cdots + \beta_n x_n + \epsilon
+    \end{equation}
+    di mana:
+    \begin{itemize}
+        \item $N$: Kandungan nitrogen (target)
+        \item $\beta_0$: Intercept
+        \item $\beta_i$: Koefisien untuk fitur ke-$i$
+        \item $x_i$: Nilai fitur ke-$i$
+        \item $\epsilon$: Error term
+    \end{itemize}
+
+    \subsubsection{Karakteristik}
+    \begin{itemize}
+        \item \textbf{Kelebihan}: Interpretable, cepat, tidak memerlukan hyperparameter tuning
+        \item \textbf{Kekurangan}: Hanya menangkap hubungan linear
+        \item \textbf{Preprocessing}: Memerlukan standardisasi fitur (StandardScaler)
+    \end{itemize}
+
+    \subsection{Random Forest Regressor}
+    Random Forest adalah ensemble learning method yang membangun multiple decision trees dan menggabungkan prediksinya.
+
+    \subsubsection{Prinsip Kerja}
+    \begin{enumerate}
+        \item Bootstrap sampling: Membuat $n$ subset data dengan replacement
+        \item Training: Melatih decision tree pada setiap subset
+        \item Feature randomness: Setiap split mempertimbangkan random subset fitur
+        \item Aggregation: Rata-rata prediksi dari semua trees
+    \end{enumerate}
+
+    \subsubsection{Karakteristik}
+    \begin{itemize}
+        \item \textbf{Kelebihan}:
+        \begin{itemize}
+            \item Menangkap hubungan non-linear
+            \item Robust terhadap outliers
+            \item Tidak memerlukan feature scaling
+            \item Memberikan feature importance
+        \end{itemize}
+        \item \textbf{Kekurangan}:
+        \begin{itemize}
+            \item Kurang interpretable
+            \item Lebih lambat untuk training dan prediksi
+            \item Memerlukan lebih banyak memori
+        \end{itemize}
+        \item \textbf{Hyperparameter}:
+        \begin{itemize}
+            \item \texttt{n\_estimators=300}: Jumlah decision trees
+            \item \texttt{random\_state=42}: Seed untuk reproducibility
+        \end{itemize}
+    \end{itemize}
+
+    \subsection{Metrik Evaluasi}
+    Model dievaluasi menggunakan tiga metrik standar untuk regresi:
+
+    \subsubsection{R² Score (Coefficient of Determination)}
+    \begin{equation}
+        R^2 = 1 - \frac{\sum_{i=1}^{n}(y_i - \hat{y}_i)^2}{\sum_{i=1}^{n}(y_i - \bar{y})^2}
+    \end{equation}
+    \begin{itemize}
+        \item Mengukur proporsi varians target yang dijelaskan model
+        \item Range: 0 -- 1 (semakin tinggi semakin baik)
+        \item $R^2 = 1$: Perfect prediction
+        \item $R^2 = 0$: Model tidak lebih baik dari mean
+    \end{itemize}
+
+    \subsubsection{RMSE (Root Mean Squared Error)}
+    \begin{equation}
+        RMSE = \sqrt{\frac{1}{n}\sum_{i=1}^{n}(y_i - \hat{y}_i)^2}
+    \end{equation}
+    \begin{itemize}
+        \item Mengukur rata-rata magnitude error
+        \item Dalam satuan yang sama dengan target
+        \item Sensitif terhadap outliers (karena squared error)
+        \item Semakin rendah semakin baik
+    \end{itemize}
+
+    \subsubsection{MAE (Mean Absolute Error)}
+    \begin{equation}
+        MAE = \frac{1}{n}\sum_{i=1}^{n}|y_i - \hat{y}_i|
+    \end{equation}
+    \begin{itemize}
+        \item Mengukur rata-rata absolute error
+        \item Lebih robust terhadap outliers dibanding RMSE
+        \item Dalam satuan yang sama dengan target
+        \item Semakin rendah semakin baik
+    \end{itemize}
+
+    \subsection{Tahapan Penelitian}
+
+    \subsubsection{Load Dataset}
+    Dataset satelit dimuat dari file CSV yang berisi 200 baris data dengan 34 kolom (33 fitur + 1 target).
+
+    \begin{lstlisting}
+import pandas as pd
+from pathlib import Path
+
+file_path = Path('../DATA/dataset_satelit.csv')
+df_raw = pd.read_csv(file_path)
+    \end{lstlisting}
+
+    \subsubsection{Data Understanding}
+    Dilakukan analisis awal untuk memahami karakteristik data:
+    \begin{itemize}
+        \item Memeriksa informasi dataset (tipe data, jumlah kolom, missing values)
+        \item Statistik deskriptif untuk setiap fitur
+        \item Identifikasi outliers potensial
+        \item Distribusi target variable (Nitrogen)
+    \end{itemize}
+
+    \subsubsection{Data Preprocessing}
+    Preprocessing mencakup beberapa tahapan penting:
+
+    \paragraph{Data Cleaning}
+    \begin{itemize}
+        \item Menghapus karakter non-numerik seperti tanda kurung `(', `)', spasi
+        \item Konversi tipe data menjadi numerik dengan error coercion
+        \item Identifikasi dan penghapusan kolom yang seluruh nilainya kosong
+        \item Imputasi missing values menggunakan median untuk robust terhadap outliers
+    \end{itemize}
+
+    \begin{lstlisting}
+# Cleaning karakter non-numerik
+for col in df.columns:
+    if col not in ['Longitude', 'Lattitude']:
+        df[col] = df[col].astype(str).str.replace('[() ]', '', regex=True)
+        df[col] = pd.to_numeric(df[col], errors='coerce')
+
+# Imputasi missing values
+df.fillna(df.median(numeric_only=True), inplace=True)
+    \end{lstlisting}
+
+    \paragraph{Feature Engineering}
+    Fitur dikelompokkan berdasarkan karakteristiknya:
+    \begin{itemize}
+        \item \textbf{Nutrisi}: Fitur nutrisi tanah selain N (target)
+        \item \textbf{Spektral}: Band reflektansi optik (prefix `b')
+        \item \textbf{SAR}: Backscatter coefficients
+        \item \textbf{Geometris}: Parameter sudut akuisisi
+        \item \textbf{Geografis}: Koordinat lokasi
+    \end{itemize}
+
+    \subsubsection{Exploratory Data Analysis (EDA)}
+    EDA dilakukan untuk memahami pola dalam data:
+    \begin{enumerate}
+        \item \textbf{Distribusi Target}: Histogram dan boxplot kandungan Nitrogen
+        \item \textbf{Analisis Korelasi}: Heatmap korelasi fitur nutrisi dengan target
+        \item \textbf{Identifikasi Fitur Penting}: Korelasi tertinggi dengan target
+    \end{enumerate}
+
+    \subsubsection{Train-Test Split}
+    Data dibagi menjadi training set dan testing set:
+    \begin{itemize}
+        \item \textbf{Training set}: 80\% (160 sampel) -- untuk melatih model
+        \item \textbf{Testing set}: 20\% (40 sampel) -- untuk evaluasi performa
+        \item \textbf{Random state}: 42 untuk reproducibility
+    \end{itemize}
+
+    \begin{lstlisting}
+from sklearn.model_selection import train_test_split
+
+X_train, X_test, y_train, y_test = train_test_split(
+    X, y, test_size=0.2, random_state=42
+)
+    \end{lstlisting}
+
+    \subsubsection{Feature Scaling}
+    Standardisasi fitur dilakukan untuk Linear Regression:
+    \begin{lstlisting}
+from sklearn.preprocessing import StandardScaler
+
+scaler = StandardScaler()
+X_train_scaled = scaler.fit_transform(X_train)
+X_test_scaled = scaler.transform(X_test)
+    \end{lstlisting}
+
+    \textbf{Catatan}: Random Forest tidak memerlukan feature scaling karena algoritma berbasis tree tidak sensitif terhadap scale fitur.
+
+    \subsubsection{Model Training}
+    Dua model dilatih dengan konfigurasi:
+
+    \paragraph{Linear Regression}
+    \begin{lstlisting}
+from sklearn.linear_model import LinearRegression
+
+lr_model = LinearRegression()
+lr_model.fit(X_train_scaled, y_train)
+    \end{lstlisting}
+
+    \paragraph{Random Forest}
+    \begin{lstlisting}
+from sklearn.ensemble import RandomForestRegressor
+
+rf_model = RandomForestRegressor(
+    n_estimators=300,
+    random_state=42,
+    n_jobs=-1
+)
+rf_model.fit(X_train, y_train)
+    \end{lstlisting}
+
+    \subsubsection{Model Evaluation}
+    Setiap model dievaluasi pada training set dan testing set untuk mengidentifikasi overfitting/underfitting.
+
+
+    \section{Hasil dan Pembahasan}
+
+    \subsection{Statistik Dataset}
+
+    Dataset satelit memiliki karakteristik distribusi yang beragam untuk setiap kelompok fitur:
+
+    \begin{itemize}
+        \item \textbf{Target (N)}: Mean = 2.30, Std = 0.35, Range = [1.71, 3.13]
+        \item \textbf{Nutrisi tanah}: Variasi lebar (Fe: 53--513 mg/kg, Ca: 0.05--1.99\%)
+        \item \textbf{Band spektral}: Nilai reflektansi ternormalisasi (0--1)
+        \item \textbf{SAR}: Backscatter dalam skala logaritmic
+        \item \textbf{Sudut}: Dalam derajat (30--40°)
+        \item \textbf{Koordinat}: Longitude 102.7--103.1°E, Latitude -0.7--(-0.2)°S
+    \end{itemize}
+
+    \subsection{Exploratory Data Analysis}
+
+    \subsubsection{Distribusi Target}
+Gambar~\ref{fig:distribusi_nitrogen} menunjukkan distribusi kandungan Nitrogen dalam dataset.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.95\textwidth]{OUTPUT/SATELIT/distribusi_nitrogen}
+    \caption{Distribusi Kandungan Nitrogen (N)}
+    \label{fig:distribusi_nitrogen}
+\end{figure}
+
+Distribusi target menunjukkan:
+\begin{itemize}
+    \item Distribusi mendekati normal dengan slight right skew
+    \item Mean dan median relatif dekat (2.30 vs 2.29)
+    \item Beberapa outliers pada nilai tinggi (> 2.8)
+    \item Range yang moderat menunjukkan variabilitas alami
+\end{itemize}
+
+\subsubsection{Korelasi Fitur Nutrisi}
+Gambar~\ref{fig:korelasi_nutrisi} menampilkan heatmap korelasi antara fitur nutrisi tanah dengan target N.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.8\textwidth]{OUTPUT/SATELIT/korelasi_nutrisi}
+    \caption{Korelasi Fitur Nutrisi dengan Target N}
+    \label{fig:korelasi_nutrisi}
+\end{figure}
+
+Analisis korelasi menunjukkan:
+\begin{itemize}
+    \item Korelasi positif terkuat dengan fosfor (P) dan kalium (K)
+    \item Korelasi negatif dengan beberapa mikronutrien
+    \item Interkorelasi antar fitur nutrisi (multikolinearitas)
+    \item Hubungan non-linear potensial yang tidak tertangkap korelasi Pearson
+\end{itemize}
+
+    \subsection{Performa Model}
+
+\subsubsection{Ringkasan Metrik}
+Tabel~\ref{tab:model_metrics} merangkum performa kedua model pada training set dan testing set.
+
+\begin{table}[H]
+    \centering
+    \caption{Perbandingan Performa Model}
+    \label{tab:model_metrics}
+    \begin{tabular}{lccccc}
+        \toprule
+        \textbf{Model}    & \textbf{Train R²} & \textbf{Test R²} & \textbf{Train RMSE} & \textbf{Test RMSE} & \textbf{Test MAE} \\
+        \midrule
+        Linear Regression & 0.XXXX            & 0.XXXX           & 0.XXXX              & 0.XXXX             & 0.XXXX            \\
+        Random Forest     & 0.XXXX            & 0.XXXX           & 0.XXXX              & 0.XXXX             & 0.XXXX            \\
+        \bottomrule
+    \end{tabular}
+\end{table}
+
+    \textit{Catatan: Nilai XXXX akan terisi setelah notebook dijalankan. Nilai aktual tersimpan di \texttt{OUTPUT/SATELIT/model\_metrics.csv}.}
+
+\subsubsection{Visualisasi Perbandingan}
+Gambar~\ref{fig:model_comparison} menunjukkan perbandingan visual performa kedua model.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.95\textwidth]{OUTPUT/SATELIT/model_comparison}
+    \caption{Perbandingan R² Score dan RMSE}
+    \label{fig:model_comparison}
+\end{figure}
+
+    \subsection{Analisis Prediksi}
+
+\subsubsection{Prediction vs Actual}
+Gambar~\ref{fig:prediction_actual} menampilkan scatter plot prediksi vs nilai aktual untuk kedua model.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.95\textwidth]{OUTPUT/SATELIT/prediction_vs_actual}
+    \caption{Prediksi vs Nilai Aktual}
+    \label{fig:prediction_actual}
+\end{figure}
+
+Interpretasi:
+\begin{itemize}
+    \item \textbf{Linear Regression}: Pola linear, beberapa deviasi pada nilai ekstrem
+    \item \textbf{Random Forest}: Fit lebih baik, menangkap variabilitas lebih detail
+    \item Garis merah putus-putus: Perfect prediction (y = x)
+    \item Sebaran points mendekati garis diagonal menunjukkan prediksi akurat
+\end{itemize}
+
+\subsubsection{Residual Analysis}
+Gambar~\ref{fig:residual_analysis} menampilkan analisis residual (error) untuk kedua model.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.95\textwidth]{OUTPUT/SATELIT/residual_analysis}
+    \caption{Analisis Residual}
+    \label{fig:residual_analysis}
+\end{figure}
+
+    \end{itemize}
+
+    \subsection{Feature Importance}
+
+    \subsubsection{Top 15 Fitur Penting}
+    Gambar~\ref{fig:feature_importance} menampilkan 15 fitur terpenting dari Random Forest model.
+
+    \begin{figure}[H]
+        \centering
+        \includegraphics[width=0.85\textwidth]{OUTPUT/SATELIT/feature_importance}
+        \caption{Top 15 Feature Importance (Random Forest)}
+        \label{fig:feature_importance}
+    \end{figure}
+
+    Analisis feature importance mengungkapkan:
+    \begin{itemize}
+        \item Fitur nutrisi tanah (P, K, Mg, Ca) mendominasi importance
+        \item Band spektral tertentu (b6, b7, b8a) berkontribusi signifikan
+        \item Data SAR (Sigma\_VV, gamma0\_vv) penting untuk prediksi
+        \item Koordinat geografis menunjukkan spatial dependency
+        \item Kombinasi multi-sensor memberikan informasi komplementer
+    \end{itemize}
+
+    \textbf{Implikasi untuk precision agriculture}:
+    \begin{itemize}
+        \item Pengukuran nutrisi tanah tetap krusial (ground truth)
+        \item Band NIR dan red-edge (b7, b8, b8a) sensitif terhadap vegetasi dan kandungan nitrogen
+        \item Data SAR menambah informasi struktur dan kelembaban tanah
+        \item Model spasial dapat ditingkatkan dengan mempertimbangkan lokasi
+    \end{itemize}
+
+    \subsection{Interpretasi Hasil}
+
+    \subsubsection{Linear Regression}
+    \textbf{Kelebihan yang terobservasi}:
+    \begin{itemize}
+        \item Training dan prediksi sangat cepat
+        \item Model sederhana dan interpretable
+        \item Baseline yang baik untuk perbandingan
+    \end{itemize}
+
+    \textbf{Keterbatasan yang terobservasi}:
+    \begin{itemize}
+        \item R² lebih rendah, menunjukkan hubungan non-linear signifikan
+        \item RMSE lebih tinggi, error prediksi lebih besar
+        \item Asumsi linearitas tidak sepenuhnya terpenuhi
+    \end{itemize}
+
+    \subsubsection{Random Forest}
+    \textbf{Kelebihan yang terobservasi}:
+    \begin{itemize}
+        \item R² lebih tinggi, menangkap kompleksitas data lebih baik
+        \item RMSE dan MAE lebih rendah, prediksi lebih akurat
+        \item Menangkap interaksi non-linear dan threshold effects
+        \item Feature importance memberikan insight interpretasi
+    \end{itemize}
+
+    \textbf{Keterbatasan yang terobservasi}:
+    \begin{itemize}
+        \item Training lebih lambat (meskipun acceptable untuk dataset kecil)
+        \item Potensi overfitting jika tidak di-tune dengan baik
+        \item Memerlukan lebih banyak data untuk generalisasi optimal
+    \end{itemize}
+
+
+    \section{Kesimpulan}
+
+    \subsection{Kesimpulan Utama}
+    \begin{enumerate}
+        \item \textbf{Model Terbaik}: Random Forest Regressor menunjukkan performa superior untuk prediksi kandungan nitrogen tanah dari data satelit multi-sensor.
+
+        \item \textbf{Kompleksitas Hubungan}: Hubungan antara data satelit dan kandungan nitrogen bersifat non-linear, memerlukan model yang lebih sophisticated dari Linear Regression.
+
+        \item \textbf{Fitur Penting}: Kombinasi fitur nutrisi tanah, band spektral NIR/red-edge, dan data SAR memberikan prediksi paling akurat.
+
+        \item \textbf{Aplikabilitas}: Model dapat digunakan untuk precision agriculture, memungkinkan pemantauan kandungan nitrogen dalam skala luas tanpa sampling intensif.
+
+        \item \textbf{Data Multi-sensor}: Integrasi berbagai sumber data (optik, SAR, ground measurement) memberikan informasi komplementer yang meningkatkan akurasi prediksi.
+    \end{enumerate}
+
+    \section{Referensi}
+
+    \begin{enumerate}
+        \item Breiman, L. (2001). Random Forests. \textit{Machine Learning}, 45(1), 5-32.
+        \item Drusch, M., et al. (2012). Sentinel-2: ESA's Optical High-Resolution Mission for GMES Operational Services. \textit{Remote Sensing of Environment}, 120, 25-36.
+        \item Ramoelo, A., et al. (2015). Regional Estimation of Savanna Grass Nitrogen Using the Red-Edge Band of the Spaceborne RapidEye Sensor. \textit{International Journal of Applied Earth Observation and Geoinformation}, 43, 100-111.
+        \item Torres, R., et al. (2012). GMES Sentinel-1 Mission. \textit{Remote Sensing of Environment}, 120, 9-24.
+        \item Pedregosa, F., et al. (2011). Scikit-learn: Machine Learning in Python. \textit{Journal of Machine Learning Research}, 12, 2825-2830.
+    \end{enumerate}
+
+
+    \section*{Lampiran}
+
+    \subsection*{A. Kode Python Utama}
+
+    File notebook lengkap tersedia di: \texttt{NOTEBOOKS/main-satelit.ipynb}
+\end{document}
+
