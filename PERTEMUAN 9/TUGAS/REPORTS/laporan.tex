@@ -1,0 +1,707 @@
+\documentclass[11pt,a4paper]{article}
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage[margin=2.5cm]{geometry}
+\usepackage{graphicx}
+\usepackage{hyperref}
+\usepackage{booktabs}
+\usepackage{amsmath}
+\usepackage{listings}
+\usepackage{xcolor}
+\usepackage{parskip}
+\usepackage{float}
+
+% Pengaturan listings untuk kode Python
+\lstset{
+    language=Python,
+    basicstyle=\ttfamily\small,
+    keywordstyle=\color{blue},
+    commentstyle=\color{gray},
+    stringstyle=\color{red},
+    showstringspaces=false,
+    breaklines=true,
+    frame=single,
+    numbers=left,
+    numberstyle=\tiny\color{gray}
+}
+
+\title{\textbf{Laporan Praktikum Mandiri\\Klasifikasi Diagnosis Kanker Payudara Menggunakan Naive Bayes}}
+\author{Rafa Al Razzak \\ NIM: 0110224155 \\ \texttt{0110224155@student.nurulfikri.ac.id}}
+\date{}
+
+\begin{document}
+    \maketitle
+
+    \begin{abstract}
+        Laporan ini menyajikan implementasi algoritma Naive Bayes untuk klasifikasi diagnosis kanker payudara menggunakan Wisconsin Breast Cancer Dataset. Dataset berisi 569 sampel dengan 30 fitur numerik yang menggambarkan karakteristik inti sel dari hasil Fine Needle Aspirate (FNA). Model Gaussian Naive Bayes dibangun dengan pembagian data 80\% training (455 sampel) dan 20\% testing (114 sampel). Evaluasi dilakukan menggunakan confusion matrix, classification report, dan 5-fold cross-validation. Hasil menunjukkan model Naive Bayes dapat mengklasifikasikan tumor sebagai benign (jinak) atau malignant (ganas) dengan akurasi yang baik, memberikan kontribusi potensial untuk sistem diagnosa medis berbantuan komputer.
+    \end{abstract}
+
+
+    \section{Pendahuluan}
+
+    \subsection{Latar Belakang}
+    Kanker payudara merupakan salah satu jenis kanker yang paling umum terjadi pada wanita di seluruh dunia. Deteksi dini dan diagnosis yang akurat sangat penting untuk meningkatkan tingkat kesembuhan dan mengurangi mortalitas. Fine Needle Aspirate (FNA) adalah prosedur medis yang umum digunakan untuk mengambil sampel jaringan payudara, dan analisis karakteristik sel dari sampel ini dapat membantu menentukan apakah tumor bersifat benign (jinak) atau malignant (ganas).
+
+    Dengan perkembangan teknologi machine learning, sistem diagnosa berbantuan komputer (Computer-Aided Diagnosis/CAD) dapat membantu dokter dalam membuat keputusan yang lebih akurat dan cepat. Naive Bayes adalah salah satu algoritma klasifikasi yang sederhana namun efektif, terutama untuk dataset dengan fitur-fitur yang independen atau mendekati independen.
+
+    Dataset Wisconsin Breast Cancer merupakan dataset benchmark yang banyak digunakan dalam penelitian machine learning untuk klasifikasi medis. Dataset ini berisi pengukuran kuantitatif dari karakteristik inti sel yang diekstrak dari citra digital FNA.
+
+    \subsection{Tujuan}
+    Tujuan dari praktikum ini adalah:
+    \begin{enumerate}
+        \item Mengeksplorasi dataset Wisconsin Breast Cancer dan memahami karakteristik fiturnya
+        \item Melakukan data preprocessing termasuk cleaning, encoding, dan scaling
+        \item Menganalisis distribusi data dan korelasi antar fitur
+        \item Mengimplementasikan model klasifikasi menggunakan Gaussian Naive Bayes
+        \item Melakukan evaluasi performa model menggunakan berbagai metrik
+        \item Melakukan validasi model menggunakan cross-validation
+        \item Menginterpretasi hasil dan memberikan insight untuk aplikasi medis
+    \end{enumerate}
+
+    \subsection{Dataset}
+    Dataset Wisconsin Breast Cancer memiliki karakteristik sebagai berikut:
+    \begin{itemize}
+        \item \textbf{Sumber}: Wisconsin Diagnostic Breast Cancer (WDBC)
+        \item \textbf{Lokasi file}: \texttt{DATA/data.csv}
+        \item \textbf{Jumlah sampel}: 569 kasus
+        \item \textbf{Jumlah fitur}: 30 fitur numerik + 1 target kategorikal
+        \item \textbf{Target}: Diagnosis (M = Malignant/ganas, B = Benign/jinak)
+        \item \textbf{Distribusi kelas}:
+        \begin{itemize}
+            \item Benign (B): 357 kasus (62.7\%)
+            \item Malignant (M): 212 kasus (37.3\%)
+        \end{itemize}
+        \item \textbf{Karakteristik Fitur}: Untuk setiap inti sel, 10 karakteristik dihitung:
+        \begin{enumerate}
+            \item radius (mean of distances from center to points on the perimeter)
+            \item texture (standard deviation of gray-scale values)
+            \item perimeter
+            \item area
+            \item smoothness (local variation in radius lengths)
+            \item compactness (perimeter² / area - 1.0)
+            \item concavity (severity of concave portions of the contour)
+            \item concave points (number of concave portions of the contour)
+            \item symmetry
+            \item fractal dimension ("coastline approximation" - 1)
+        \end{enumerate}
+        \item \textbf{Statistik Fitur}: Untuk setiap karakteristik, 3 nilai dihitung:
+        \begin{itemize}
+            \item Mean (10 fitur)
+            \item Standard Error (10 fitur)
+            \item "Worst" atau largest (10 fitur)
+        \end{itemize}
+    \end{itemize}
+
+
+    \section{Metodologi}
+
+    \subsection{Gaussian Naive Bayes}
+    Gaussian Naive Bayes adalah varian dari algoritma Naive Bayes yang mengasumsikan fitur-fitur mengikuti distribusi Gaussian (normal).
+
+    \subsubsection{Prinsip Dasar}
+    Naive Bayes berbasis pada Teorema Bayes dengan asumsi "naive" bahwa fitur-fitur saling independen:
+
+    \begin{equation}
+        P(y|X) = \frac{P(X|y) \cdot P(y)}{P(X)}
+    \end{equation}
+
+    di mana:
+    \begin{itemize}
+        \item $P(y|X)$: Posterior probability - probabilitas kelas $y$ given fitur $X$
+        \item $P(X|y)$: Likelihood - probabilitas fitur $X$ given kelas $y$
+        \item $P(y)$: Prior probability - probabilitas kelas $y$
+        \item $P(X)$: Evidence - probabilitas fitur $X$
+    \end{itemize}
+
+    \subsubsection{Gaussian Assumption}
+    Untuk fitur kontinu, Gaussian Naive Bayes mengasumsikan setiap fitur mengikuti distribusi normal:
+
+    \begin{equation}
+        P(x_i|y) = \frac{1}{\sqrt{2\pi\sigma_y^2}} \exp\left(-\frac{(x_i-\mu_y)^2}{2\sigma_y^2}\right)
+    \end{equation}
+
+    di mana $\mu_y$ dan $\sigma_y^2$ adalah mean dan variance dari fitur $x_i$ untuk kelas $y$.
+
+    \subsubsection{Klasifikasi}
+    Untuk mengklasifikasikan sampel baru, pilih kelas dengan posterior probability tertinggi:
+
+    \begin{equation}
+        \hat{y} = \arg\max_y P(y) \prod_{i=1}^{n} P(x_i|y)
+    \end{equation}
+
+    \subsubsection{Karakteristik}
+    \begin{itemize}
+        \item \textbf{Kelebihan}:
+        \begin{itemize}
+            \item Sederhana dan cepat untuk training dan prediksi
+            \item Bekerja baik dengan dataset kecil
+            \item Tidak memerlukan banyak hyperparameter tuning
+            \item Probabilistik - memberikan confidence scores
+            \item Robust terhadap irrelevant features
+        \end{itemize}
+        \item \textbf{Kekurangan}:
+        \begin{itemize}
+            \item Asumsi independensi fitur sering tidak realistis
+            \item Sensitif terhadap korelasi antar fitur
+            \item Performa dapat menurun jika asumsi distribusi tidak terpenuhi
+        \end{itemize}
+    \end{itemize}
+
+    \subsection{Metrik Evaluasi}
+
+    \subsubsection{Accuracy}
+    Proporsi prediksi yang benar dari total prediksi:
+    \begin{equation}
+        Accuracy = \frac{TP + TN}{TP + TN + FP + FN}
+    \end{equation}
+
+    \subsubsection{Confusion Matrix}
+    Matriks yang menunjukkan jumlah prediksi benar dan salah untuk setiap kelas:
+    \begin{itemize}
+        \item \textbf{True Positive (TP)}: Malignant diprediksi sebagai Malignant
+        \item \textbf{True Negative (TN)}: Benign diprediksi sebagai Benign
+        \item \textbf{False Positive (FP)}: Benign diprediksi sebagai Malignant (Type I error)
+        \item \textbf{False Negative (FN)}: Malignant diprediksi sebagai Benign (Type II error)
+    \end{itemize}
+
+    \subsubsection{Classification Report}
+    Metrik per-kelas yang mencakup:
+
+    \textbf{Precision}: Proporsi prediksi positif yang benar
+    \begin{equation}
+        Precision = \frac{TP}{TP + FP}
+    \end{equation}
+
+    \textbf{Recall (Sensitivity)}: Proporsi kasus positif yang terdeteksi
+    \begin{equation}
+        Recall = \frac{TP}{TP + FN}
+    \end{equation}
+
+    \textbf{F1-Score}: Harmonic mean dari precision dan recall
+    \begin{equation}
+        F1 = 2 \times \frac{Precision \times Recall}{Precision + Recall}
+    \end{equation}
+
+    \subsubsection{Cross-Validation}
+    5-fold cross-validation untuk menguji generalisasi model:
+    \begin{itemize}
+        \item Data dibagi menjadi 5 subset (folds)
+        \item Setiap fold digunakan sekali sebagai test set
+        \item 4 fold lainnya digunakan sebagai training set
+        \item Mean dan standard deviation dari 5 scores dihitung
+    \end{itemize}
+
+    \subsection{Tahapan Penelitian}
+
+    \subsubsection{Load Dataset}
+    Dataset dimuat dari file CSV menggunakan pandas:
+    \begin{lstlisting}
+import pandas as pd
+data = pd.read_csv('../DATA/data.csv')
+    \end{lstlisting}
+
+    \subsubsection{Data Understanding}
+    Eksplorasi awal untuk memahami struktur dan karakteristik data:
+    \begin{itemize}
+        \item \texttt{data.info()}: Tipe data, jumlah kolom, missing values
+        \item \texttt{data.shape}: Dimensi dataset (569 rows, 33 columns)
+        \item \texttt{data.describe()}: Statistik deskriptif untuk fitur numerik
+        \item \texttt{data['diagnosis'].value\_counts()}: Distribusi kelas
+    \end{itemize}
+
+    \subsubsection{Data Cleaning}
+    Proses pembersihan data meliputi:
+
+    \paragraph{Missing Values}
+    \begin{lstlisting}
+# Check missing values
+print(data.isnull().sum())
+# Dataset ini tidak memiliki missing values
+    \end{lstlisting}
+
+    \paragraph{Duplicate Rows}
+    \begin{lstlisting}
+# Check for duplicates
+print(data.duplicated().sum())
+    \end{lstlisting}
+
+    \paragraph{Drop Irrelevant Columns}
+    \begin{lstlisting}
+# Drop ID and empty column
+columns_to_drop = ['id']
+if 'Unnamed: 32' in data.columns:
+    columns_to_drop.append('Unnamed: 32')
+data = data.drop(columns=columns_to_drop, axis=1)
+    \end{lstlisting}
+
+    \subsubsection{Outlier Detection}
+    Analisis outliers menggunakan boxplot untuk 6 fitur utama:
+    \begin{itemize}
+        \item radius\_mean
+        \item texture\_mean
+        \item perimeter\_mean
+        \item area\_mean
+        \item smoothness\_mean
+        \item compactness\_mean
+    \end{itemize}
+
+    Outliers tidak dihapus karena dapat merepresentasikan kasus medis yang valid (tumor dengan karakteristik ekstrem).
+
+    \subsubsection{Data Encoding}
+    Target variable dikonversi dari kategorikal ke numerik:
+    \begin{lstlisting}
+# M (Malignant) -> 1, B (Benign) -> 0
+data['diagnosis'] = data['diagnosis'].map({'M': 1, 'B': 0})
+    \end{lstlisting}
+
+    \subsubsection{Exploratory Data Analysis}
+    Visualisasi data untuk memahami pola dan hubungan:
+    \begin{enumerate}
+        \item \textbf{Distribusi Diagnosis}: Count plot untuk melihat class balance
+        \item \textbf{Feature Distribution by Diagnosis}: Boxplot fitur utama berdasarkan diagnosis
+        \item \textbf{Correlation Heatmap}: Korelasi antar fitur "mean" dengan target
+    \end{enumerate}
+
+    \subsubsection{Train-Test Split}
+    Data dibagi dengan stratified sampling untuk menjaga proporsi kelas:
+    \begin{lstlisting}
+X = data.drop("diagnosis", axis=1)
+y = data["diagnosis"]
+
+X_train, X_test, y_train, y_test = train_test_split(
+    X, y, test_size=0.2, random_state=42, stratify=y
+)
+    \end{lstlisting}
+
+    Hasil split:
+    \begin{itemize}
+        \item Training set: 455 sampel (80\%)
+        \item Testing set: 114 sampel (20\%)
+        \item Stratified: proporsi Benign/Malignant sama di train dan test
+    \end{itemize}
+
+    \subsubsection{Feature Scaling}
+    Standardisasi fitur menggunakan StandardScaler:
+    \begin{lstlisting}
+from sklearn.preprocessing import StandardScaler
+
+scaler = StandardScaler()
+X_train_scaled = scaler.fit_transform(X_train)
+X_test_scaled = scaler.transform(X_test)
+    \end{lstlisting}
+
+    \textbf{Pentingnya Scaling}:
+    \begin{itemize}
+        \item Fitur memiliki skala yang sangat berbeda (area: 143--2501, smoothness: 0.05--0.16)
+        \item Naive Bayes menghitung variance - scaling membantu estimasi yang lebih baik
+        \item Mencegah fitur dengan range besar mendominasi
+    \end{itemize}
+
+    \subsubsection{Model Training}
+    Training Gaussian Naive Bayes classifier:
+    \begin{lstlisting}
+from sklearn.naive_bayes import GaussianNB
+
+model = GaussianNB()
+model.fit(X_train_scaled, y_train)
+    \end{lstlisting}
+
+    \subsubsection{Model Evaluation}
+    Evaluasi pada training set dan testing set:
+    \begin{lstlisting}
+# Predictions
+train_predictions = model.predict(X_train_scaled)
+test_predictions = model.predict(X_test_scaled)
+
+# Accuracy
+train_acc = accuracy_score(y_train, train_predictions)
+test_acc = accuracy_score(y_test, test_predictions)
+
+# Confusion Matrix
+cm = confusion_matrix(y_test, test_predictions)
+
+# Classification Report
+report = classification_report(y_test, test_predictions,
+                               target_names=['Benign', 'Malignant'])
+    \end{lstlisting}
+
+    \subsubsection{Cross-Validation}
+    5-fold cross-validation untuk menguji robustness model:
+    \begin{lstlisting}
+cv_scores = cross_val_score(model, X_train_scaled, y_train,
+                            cv=5, scoring='accuracy')
+    \end{lstlisting}
+
+
+    \section{Hasil dan Pembahasan}
+
+    \subsection{Statistik Dataset}
+
+    Dataset Wisconsin Breast Cancer menunjukkan karakteristik yang beragam:
+
+    \begin{itemize}
+        \item \textbf{Class Distribution}:
+        \begin{itemize}
+            \item Benign: 357 kasus (62.7\%)
+            \item Malignant: 212 kasus (37.3\%)
+            \item Dataset sedikit imbalanced, namun masih acceptable
+        \end{itemize}
+
+        \item \textbf{Feature Statistics}: Fitur-fitur menunjukkan range yang luas:
+        \begin{itemize}
+            \item radius\_mean: 6.98 -- 28.11
+            \item area\_mean: 143.5 -- 2501.0
+            \item concavity\_mean: 0.0 -- 0.43
+        \end{itemize}
+
+        \item \textbf{Data Quality}:
+        \begin{itemize}
+            \item Tidak ada missing values
+            \item Tidak ada duplicate rows
+            \item Semua fitur numerik dan terukur dengan baik
+        \end{itemize}
+    \end{itemize}
+
+    \subsection{Exploratory Data Analysis}
+
+    \subsubsection{Outlier Detection}
+    Gambar~\ref{fig:outliers} menampilkan boxplot untuk 6 fitur utama.
+
+    \begin{figure}[H]
+        \centering
+        \includegraphics[width=0.95\textwidth]{OUTPUT/step1_outlier_detection}
+        \caption{Outlier Detection untuk Fitur Utama}
+        \label{fig:outliers}
+    \end{figure}
+
+    Observasi:
+    \begin{itemize}
+        \item Semua fitur menunjukkan beberapa outliers
+        \item area\_mean dan perimeter\_mean memiliki outliers paling banyak
+        \item Outliers cenderung pada nilai tinggi (tumor besar/ganas)
+        \item Outliers tidak dihapus karena valid secara medis
+    \end{itemize}
+
+    \subsubsection{Feature Distribution by Diagnosis}
+    Gambar~\ref{fig:distribution} menunjukkan distribusi fitur berdasarkan diagnosis.
+
+    \begin{figure}[H]
+        \centering
+        \includegraphics[width=0.95\textwidth]{OUTPUT/step2_feature_distribution}
+        \caption{Distribusi Fitur Berdasarkan Diagnosis}
+        \label{fig:distribution}
+    \end{figure}
+
+    Insight penting:
+    \begin{itemize}
+        \item \textbf{Diagnosis Distribution}: Benign lebih banyak (357) dari Malignant (212)
+        \item \textbf{radius\_mean}: Malignant memiliki radius lebih besar
+        \item \textbf{texture\_mean}: Malignant lebih kasar/heterogen
+        \item \textbf{perimeter\_mean}: Korelasi kuat dengan radius
+        \item \textbf{area\_mean}: Malignant signifikan lebih besar
+        \item \textbf{smoothness\_mean}: Perbedaan lebih subtle
+        \item Secara umum: Tumor malignant cenderung lebih besar dan tidak beraturan
+    \end{itemize}
+
+    \subsubsection{Correlation Analysis}
+    Gambar~\ref{fig:correlation} menampilkan heatmap korelasi fitur "mean".
+
+    \begin{figure}[H]
+        \centering
+        \includegraphics[width=0.95\textwidth]{OUTPUT/step3_correlation_heatmap}
+        \caption{Correlation Heatmap untuk Fitur Mean}
+        \label{fig:correlation}
+    \end{figure}
+
+    Temuan korelasi:
+    \begin{itemize}
+        \item \textbf{Multikolinearitas tinggi}:
+        \begin{itemize}
+            \item radius, perimeter, area sangat berkorelasi (r > 0.95)
+            \item compactness, concavity, concave points berkorelasi kuat
+        \end{itemize}
+        \item \textbf{Korelasi dengan diagnosis}:
+        \begin{itemize}
+            \item Korelasi positif kuat: concave points (0.79), perimeter (0.74), radius (0.73)
+            \item Korelasi sedang: compactness, concavity
+            \item Korelasi lemah: smoothness, symmetry, fractal dimension
+        \end{itemize}
+        \item \textbf{Implikasi untuk Naive Bayes}:
+        \begin{itemize}
+            \item Asumsi independensi dilanggar untuk beberapa fitur
+            \item Namun Naive Bayes sering robust terhadap pelanggaran ini
+            \item Feature selection dapat meningkatkan performa
+        \end{itemize}
+    \end{itemize}
+
+    \subsection{Performa Model}
+
+    \subsubsection{Accuracy Scores}
+    Tabel~\ref{tab:accuracy} merangkum akurasi model pada training dan testing set.
+
+    \begin{table}[H]
+        \centering
+        \caption{Akurasi Model Naive Bayes}
+        \label{tab:accuracy}
+        \begin{tabular}{lc}
+            \toprule
+            \textbf{Set} & \textbf{Accuracy} \\
+            \midrule
+            Training Set & 94.51\%           \\
+            Testing Set  & 92.11\%           \\
+            \bottomrule
+        \end{tabular}
+    \end{table}
+
+    Model mencapai akurasi training sebesar 94.51\% dan akurasi testing sebesar 92.11\%, menunjukkan generalisasi yang baik tanpa overfitting.
+
+    Interpretasi:
+    \begin{itemize}
+        \item Jika train accuracy ≈ test accuracy: Model generalize dengan baik
+        \item Jika train accuracy >> test accuracy: Overfitting (unlikely untuk Naive Bayes)
+        \item Jika keduanya tinggi (>90\%): Model efektif untuk klasifikasi ini
+    \end{itemize}
+
+    \subsubsection{Confusion Matrix}
+    Gambar~\ref{fig:confusion} menampilkan confusion matrix pada test set.
+
+    \begin{figure}[H]
+        \centering
+        \includegraphics[width=0.75\textwidth]{OUTPUT/step4_confusion_matrix}
+        \caption{Confusion Matrix - Naive Bayes pada Test Set}
+        \label{fig:confusion}
+    \end{figure}
+
+    Analisis confusion matrix:
+    \begin{itemize}
+        \item \textbf{True Negatives (TN)}: Benign yang diprediksi benar
+        \item \textbf{False Positives (FP)}: Benign diprediksi Malignant
+        \begin{itemize}
+            \item Over-diagnosis - tidak terlalu berbahaya
+            \item Pasien menjalani pemeriksaan lanjutan
+        \end{itemize}
+        \item \textbf{False Negatives (FN)}: Malignant diprediksi Benign
+        \begin{itemize}
+            \item Under-diagnosis - SANGAT BERBAHAYA
+            \item Kanker tidak terdeteksi, treatment tertunda
+            \item Dalam aplikasi medis, FN harus diminimalkan
+        \end{itemize}
+        \item \textbf{True Positives (TP)}: Malignant yang diprediksi benar
+    \end{itemize}
+
+    \textbf{Pertimbangan Medis}:
+    \begin{itemize}
+        \item False Negative lebih berbahaya daripada False Positive
+        \item Jika FN tinggi, perlu tuning threshold atau menggunakan ensemble
+        \item Recall untuk kelas Malignant adalah metrik kritis
+    \end{itemize}
+
+    \subsubsection{Classification Report}
+    Classification report memberikan metrik detail per kelas:
+
+    \begin{table}[H]
+        \centering
+        \caption{Classification Report}
+        \label{tab:classification}
+        \begin{tabular}{lccc}
+            \toprule
+            \textbf{Class}        & \textbf{Precision} & \textbf{Recall} & \textbf{F1-Score} \\
+            \midrule
+            Benign                & 0.92              & 0.96           & 0.94             \\
+            Malignant             & 0.92              & 0.86           & 0.89             \\
+            \midrule
+            \textbf{Accuracy} & \multicolumn{3}{c}{0.92} \\
+            \textbf{Macro Avg}    & 0.92              & 0.91           & 0.91             \\
+            \textbf{Weighted Avg} & 0.92              & 0.92           & 0.92             \\
+            \bottomrule
+        \end{tabular}
+    \end{table}
+
+
+    Interpretasi metrik:
+    \begin{itemize}
+        \item \textbf{Precision Benign}: Berapa persen prediksi Benign yang benar
+        \item \textbf{Recall Benign}: Berapa persen kasus Benign yang terdeteksi
+        \item \textbf{Precision Malignant}: Berapa persen prediksi Malignant yang benar
+        \item \textbf{Recall Malignant}: Berapa persen kasus Malignant yang terdeteksi (KRITIS)
+        \item \textbf{F1-Score}: Balance antara precision dan recall
+    \end{itemize}
+
+    \subsection{Cross-Validation}
+
+    5-fold cross-validation memberikan estimasi performa yang lebih robust:
+
+    \begin{table}[H]
+        \centering
+        \caption{Cross-Validation Scores}
+        \label{tab:cv}
+        \begin{tabular}{lc}
+            \toprule
+            \textbf{Fold}       & \textbf{Accuracy}        \\
+            \midrule
+            Fold 1              & 92.31\%                  \\
+            Fold 2              & 98.90\%                  \\
+            Fold 3              & 92.31\%                  \\
+            Fold 4              & 92.31\%                  \\
+            Fold 5              & 93.41\%                  \\
+            \midrule
+            \textbf{Mean ± Std} & \textbf{93.85 ± 2.56\%} \\
+            \bottomrule
+        \end{tabular}
+    \end{table}
+
+    Interpretasi CV:
+    \begin{itemize}
+        \item \textbf{Mean accuracy}: Estimasi performa pada data unseen
+        \item \textbf{Standard deviation}: Mengukur variance/consistency model
+        \begin{itemize}
+            \item Std rendah (<2\%): Model stabil dan robust
+            \item Std tinggi (>5\%): Model sensitif terhadap data split
+        \end{itemize}
+        \item \textbf{Confidence}: Mean ± 2×Std memberikan confidence interval 95\%
+    \end{itemize}
+
+    \subsection{Diskusi}
+
+    \subsubsection{Performa Naive Bayes}
+    \textbf{Mengapa Naive Bayes bekerja baik untuk dataset ini?}
+    \begin{enumerate}
+        \item \textbf{Distribusi features mendekati Gaussian}: Fitur-fitur seperti radius, area, dll. mengikuti distribusi normal
+        \item \textbf{Dataset size adequate}: 569 sampel cukup untuk estimasi parameter
+        \item \textbf{Features informative}: Fitur-fitur memiliki korelasi kuat dengan target
+        \item \textbf{Binary classification}: NB optimal untuk klasifikasi 2 kelas
+    \end{enumerate}
+
+    \textbf{Limitasi yang diamati}:
+    \begin{enumerate}
+        \item \textbf{Asumsi independensi}: Banyak fitur yang berkorelasi (radius, perimeter, area)
+        \item \textbf{Linear decision boundary}: NB mengasumsikan pemisahan yang relatif linear
+        \item \textbf{Sensitive to feature scale}: Memerlukan standardisasi
+    \end{enumerate}
+
+    \subsubsection{Perbandingan dengan Algoritma Lain}
+    Dalam literatur, performa algoritma untuk dataset ini:
+    \begin{itemize}
+        \item \textbf{Naive Bayes}: 93-96\% accuracy
+        \item \textbf{Logistic Regression}: 95-97\% accuracy
+        \item \textbf{SVM}: 96-98\% accuracy
+        \item \textbf{Random Forest}: 95-97\% accuracy
+        \item \textbf{Neural Networks}: 96-98\% accuracy
+    \end{itemize}
+
+    Naive Bayes competitive dengan algoritma yang lebih kompleks, dengan keuntungan:
+    \begin{itemize}
+        \item Training sangat cepat
+        \item Interpretable (probabilistic)
+        \item Tidak overfitting
+        \item Cocok untuk real-time prediction
+    \end{itemize}
+
+    \subsubsection{Aplikasi dalam Diagnosa Medis}
+
+    \textbf{Kelebihan untuk CAD system}:
+    \begin{enumerate}
+        \item \textbf{Fast prediction}: Real-time diagnosis support
+        \item \textbf{Probabilistic output}: Confidence scores untuk dokter
+        \item \textbf{Explainable}: Feature contributions dapat dijelaskan
+        \item \textbf{Low computational cost}: Dapat dijalankan di edge devices
+    \end{enumerate}
+
+    \textbf{Pertimbangan implementasi}:
+    \begin{enumerate}
+        \item \textbf{False Negative critical}: Sistem harus minimize FN
+        \begin{itemize}
+            \item Adjust decision threshold untuk favor sensitivity
+            \item Ensemble dengan model lain untuk double-check
+        \end{itemize}
+        \item \textbf{Human-in-the-loop}: Model sebagai assistive tool, bukan replacement
+        \item \textbf{Continuous monitoring}: Performa harus dimonitor pada data baru
+        \item \textbf{Regulatory compliance}: FDA approval untuk medical devices
+    \end{enumerate}
+
+    \subsubsection{Feature Engineering Opportunities}
+    Potensi improvement:
+    \begin{enumerate}
+        \item \textbf{Feature selection}: Hapus fitur yang redundant (high correlation)
+        \item \textbf{Feature combination}: Create ratio features (perimeter/area, dll.)
+        \item \textbf{Dimensionality reduction}: PCA untuk mengurangi multikolinearitas
+        \item \textbf{Domain-specific features}: Tambahkan fitur medis lain (age, family history)
+    \end{enumerate}
+
+
+    \section{Kesimpulan}
+
+    \subsection{Kesimpulan Utama}
+    \begin{enumerate}
+        \item \textbf{Model Performance}: Gaussian Naive Bayes berhasil mengklasifikasikan diagnosis kanker payudara dengan akurasi tinggi (expected >93\%) pada Wisconsin Breast Cancer Dataset.
+
+        \item \textbf{Data Quality}: Dataset berkualitas tinggi dengan 569 sampel, tanpa missing values, dan fitur-fitur yang terukur dengan baik memungkinkan training model yang robust.
+
+        \item \textbf{Feature Importance}: Fitur-fitur geometris (radius, perimeter, area) dan tekstur (concave points, concavity, compactness) memiliki korelasi kuat dengan diagnosis, dengan tumor malignant cenderung lebih besar dan tidak beraturan.
+
+        \item \textbf{Model Generalization}: Cross-validation menunjukkan model generalize dengan baik, dengan variance rendah antar folds, mengindikasikan performa yang stabil.
+
+        \item \textbf{Clinical Applicability}: Model dapat digunakan sebagai computer-aided diagnosis tool untuk membantu dokter dalam membuat keputusan diagnosis yang lebih cepat dan akurat.
+
+        \item \textbf{Naive Bayes Effectiveness}: Meskipun sederhana, Naive Bayes competitive dengan algoritma yang lebih kompleks untuk dataset ini, dengan keuntungan kecepatan dan interpretability.
+    \end{enumerate}
+
+    \subsection{Saran dan Pengembangan}
+    \begin{enumerate}
+        \item \textbf{Threshold Tuning}: Adjust decision threshold untuk minimize false negatives (under-diagnosis) yang lebih berbahaya dalam konteks medis.
+
+        \item \textbf{Ensemble Methods}: Kombinasikan Naive Bayes dengan algoritma lain (Logistic Regression, SVM) untuk meningkatkan robustness.
+
+        \item \textbf{Feature Engineering}: Eksplorasi feature selection dan dimensionality reduction untuk mengatasi multikolinearitas.
+
+        \item \textbf{External Validation}: Test model pada dataset dari rumah sakit lain untuk validasi generalisasi.
+
+        \item \textbf{Integration with Clinical Workflow}: Develop user-friendly interface untuk integrasi dengan sistem rumah sakit.
+
+        \item \textbf{Continuous Learning}: Implement system untuk periodic retraining dengan data baru.
+
+        \item \textbf{Explainable AI}: Tambahkan visualization untuk menjelaskan prediksi kepada dokter dan pasien.
+    \end{enumerate}
+
+
+    \section{Referensi}
+
+    \begin{enumerate}
+        \item Street, W. N., Wolberg, W. H., \& Mangasarian, O. L. (1993). Nuclear feature extraction for breast tumor diagnosis. \textit{IS\&T/SPIE 1993 International Symposium on Electronic Imaging: Science and Technology}, 1905, 861-870.
+
+        \item Wolberg, W. H., Street, W. N., \& Mangasarian, O. L. (1995). Image analysis and machine learning applied to breast cancer diagnosis and prognosis. \textit{Analytical and Quantitative Cytology and Histology}, 17(2), 77-87.
+
+        \item Mangasarian, O. L., Street, W. N., \& Wolberg, W. H. (1995). Breast cancer diagnosis and prognosis via linear programming. \textit{Operations Research}, 43(4), 570-577.
+
+        \item Zhang, H. (2004). The optimality of naive Bayes. \textit{AA}, 1(2), 3.
+
+        \item Rish, I. (2001). An empirical study of the naive Bayes classifier. \textit{IJCAI 2001 Workshop on Empirical Methods in Artificial Intelligence}, 3(22), 41-46.
+
+        \item Pedregosa, F., et al. (2011). Scikit-learn: Machine Learning in Python. \textit{Journal of Machine Learning Research}, 12, 2825-2830.
+
+        \item Dua, D. \& Graff, C. (2019). UCI Machine Learning Repository. Irvine, CA: University of California, School of Information and Computer Science. \url{http://archive.ics.uci.edu/ml}
+    \end{enumerate}
+
+
+    \section*{Lampiran}
+
+    \subsection*{A. Kode Python Utama}
+
+    File notebook lengkap tersedia di: \texttt{NOTEBOOKS/main.ipynb}
+
+    \subsection*{B. Output Files}
+
+    Semua visualisasi disimpan di direktori \texttt{REPORTS/OUTPUT/}:
+    \begin{itemize}
+        \item \texttt{step1\_outlier\_detection.png}
+        \item \texttt{step2\_feature\_distribution.png}
+        \item \texttt{step3\_correlation\_heatmap.png}
+        \item \texttt{step4\_confusion\_matrix.png}
+    \end{itemize}
+
+    \subsection*{C. Dataset Information}
+
+    Dataset Wisconsin Breast Cancer tersedia di UCI Machine Learning Repository dan digunakan secara luas dalam penelitian machine learning untuk klasifikasi medis.
+
+\end{document}
+
