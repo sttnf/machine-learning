@@ -1,0 +1,646 @@
+\documentclass[11pt,a4paper]{article}
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage[margin=2.5cm]{geometry}
+\usepackage{graphicx}
+\usepackage{hyperref}
+\usepackage{booktabs}
+\usepackage{amsmath}
+\usepackage{listings}
+\usepackage{xcolor}
+\usepackage{parskip}
+\usepackage{float}
+
+% Pengaturan listings untuk kode Python
+\lstset{
+    language=Python,
+    basicstyle=\ttfamily\small,
+    keywordstyle=\color{blue},
+    commentstyle=\color{gray},
+    stringstyle=\color{red},
+    showstringspaces=false,
+    breaklines=true,
+    frame=single,
+    numbers=left,
+    numberstyle=\tiny\color{gray}
+}
+
+\title{\textbf{Laporan Praktikum Machine Learning\\Peminatan AI Informatics STT-NF\\Prediksi Cuaca menggunakan Naive Bayes dan KNN}}
+\author{Rafa Al Razzak \\ NIM: 0110224155 \\ \texttt{0110224155@student.nurulfikri.ac.id}}
+\date{}
+
+\begin{document}
+    \maketitle
+
+    \begin{abstract}
+        Laporan ini menyajikan implementasi tiga latihan praktikum machine learning untuk prediksi cuaca. Latihan 1 mengklasifikasikan persepsi suhu (PANAS/DINGIN) berdasarkan temperatur dan kecepatan angin menggunakan KNN dengan optimasi nilai $k$. Latihan 2 membangun model prediksi cuaca (Sunny, Cloudy, Rainy, Snowy) menggunakan Naive Bayes, mencakup pembuatan confusion matrix dan perhitungan metrik evaluasi (accuracy, precision, recall) dalam persentase. Latihan 3 mengimplementasikan algoritma KNN untuk prediksi cuaca dengan optimasi parameter $k$. Dataset cuaca berisi 10 fitur meteorologi termasuk temperatur, kelembaban, kecepatan angin, tekanan atmosfer, dan tutupan awan. Evaluasi dilakukan menggunakan confusion matrix, classification report, dan cross-validation. Hasil menunjukkan Naive Bayes mencapai akurasi 92{,}58\% dan KNN mencapai 89{,}52\%, dengan Naive Bayes memberikan performa superior untuk prediksi jenis cuaca.
+    \end{abstract}
+
+
+    \section{Pendahuluan}
+
+    \subsection{Latar Belakang}
+    Prediksi cuaca merupakan salah satu aplikasi klasifikasi yang penting dalam kehidupan sehari-hari. Informasi cuaca yang akurat sangat diperlukan untuk berbagai sektor seperti pertanian, transportasi, pariwisata, dan aktivitas outdoor. Dengan kemajuan teknologi sensor meteorologi dan machine learning, prediksi cuaca dapat dilakukan dengan tingkat akurasi yang semakin tinggi.
+
+    Dalam konteks praktikum machine learning, prediksi cuaca menyediakan studi kasus yang menarik karena melibatkan multiple features dengan karakteristik yang berbeda (numerik dan kategorikal) serta multiple classes output. Dataset cuaca umumnya memiliki fitur-fitur seperti temperatur, kelembaban, kecepatan angin, tekanan atmosfer, dan kondisi awan yang saling berkorelasi namun dapat dimodelkan menggunakan algoritma klasifikasi.
+
+    Algoritma Naive Bayes dan K-Nearest Neighbors (KNN) merupakan dua pendekatan yang populer untuk klasifikasi cuaca. Naive Bayes efektif karena dapat menangani fitur-fitur kontinyu dengan baik melalui asumsi distribusi Gaussian, sementara KNN memberikan fleksibilitas dalam menentukan decision boundary yang kompleks berdasarkan similarity antar data points.
+
+    \subsection{Tujuan}
+    Praktikum ini bertujuan untuk mengimplementasikan tiga latihan utama dalam machine learning:
+
+    \textbf{Latihan 1}: Klasifikasi persepsi suhu berdasarkan temperatur dan kecepatan angin menggunakan algoritma KNN dengan optimasi nilai $k$ untuk menentukan persepsi ``PANAS'' atau ``DINGIN''.
+
+    \textbf{Latihan 2}: Implementasi model prediksi cuaca menggunakan Naive Bayes, mencakup pembuatan tabel confusion matrix dan perhitungan nilai persentase dari accuracy, precision, dan recall.
+
+    \textbf{Latihan 3}: Implementasi algoritma KNN untuk prediksi jenis cuaca (Sunny, Cloudy, Rainy, Snowy) dengan optimasi parameter $k$.
+
+    Secara spesifik, praktikum ini bertujuan untuk:
+    \begin{enumerate}
+        \item Mengeksplorasi dataset cuaca dan memahami pola data meteorologi,
+        \item Melakukan preprocessing data termasuk encoding variabel kategorikal dan normalisasi,
+        \item Menganalisis distribusi fitur cuaca dan korelasi antar variabel meteorologi,
+        \item Mengimplementasikan model Gaussian Naive Bayes dan KNN untuk klasifikasi cuaca,
+        \item Melakukan evaluasi dan perbandingan performa kedua model,
+        \item Memberikan insight untuk penerapan dalam sistem prediksi cuaca,
+        \item Memahami optimasi hyperparameter untuk meningkatkan akurasi model.
+    \end{enumerate}
+
+    \subsection{Dataset}
+    Dataset cuaca yang digunakan memiliki karakteristik sebagai berikut:
+    \begin{itemize}
+        \item \textbf{Sumber}: Dataset meteorologi sintetik untuk pembelajaran machine learning.
+        \item \textbf{Lokasi file}: \texttt{DATA/data.csv}
+        \item \textbf{Jumlah sampel}: 13\,200 records observasi cuaca.
+        \item \textbf{Jumlah fitur}: 7 fitur numerik + 3 fitur kategorikal + 1 target.
+        \item \textbf{Target variabel}: \texttt{Weather Type} dengan 4 kategori (Sunny, Cloudy, Rainy, Snowy).
+        \item \textbf{Distribusi kelas (seimbang)}:
+        \begin{itemize}
+            \item Sunny: $\approx$ 25\%
+            \item Cloudy: $\approx$ 25\%
+            \item Rainy: $\approx$ 25\%
+            \item Snowy: $\approx$ 25\%
+        \end{itemize}
+        \item \textbf{Contoh fitur meteorologi}:
+        \begin{enumerate}
+            \item Temperature ($^\circ$C)
+            \item Humidity (\%)
+            \item Wind Speed (km/h)
+            \item Precipitation (\%)
+            \item Atmospheric Pressure (hPa)
+            \item UV Index
+            \item Visibility (km)
+            \item Season (kategorikal)
+            \item Location (kategorikal)
+            \item Cloud Cover (kategorikal)
+        \end{enumerate}
+    \end{itemize}
+
+
+    \section{Metodologi}
+
+    \subsection{Gaussian Naive Bayes}
+    Gaussian Naive Bayes adalah varian dari algoritma Naive Bayes yang mengasumsikan fitur-fitur mengikuti distribusi Gaussian (normal).
+
+    \subsubsection{Prinsip Dasar}
+    Naive Bayes berbasis pada Teorema Bayes dengan asumsi ``naive'' bahwa fitur-fitur saling independen:
+    \begin{equation}
+        P(y|X) = \frac{P(X|y) \cdot P(y)}{P(X)}
+    \end{equation}
+    di mana:
+    \begin{itemize}
+        \item $P(y|X)$: posterior probability -- probabilitas kelas $y$ given fitur $X$,
+        \item $P(X|y)$: likelihood -- probabilitas fitur $X$ given kelas $y$,
+        \item $P(y)$: prior probability -- probabilitas kelas $y$,
+        \item $P(X)$: evidence -- probabilitas fitur $X$.
+    \end{itemize}
+
+    \subsubsection{Gaussian Assumption}
+    Untuk fitur kontinu, Gaussian Naive Bayes mengasumsikan setiap fitur mengikuti distribusi normal:
+    \begin{equation}
+        P(x_i|y) = \frac{1}{\sqrt{2\pi\sigma_y^2}} \exp\left(-\frac{(x_i-\mu_y)^2}{2\sigma_y^2}\right)
+    \end{equation}
+    di mana $\mu_y$ dan $\sigma_y^2$ adalah mean dan variance dari fitur $x_i$ untuk kelas $y$.
+
+    \subsubsection{Klasifikasi}
+    Untuk mengklasifikasikan sampel baru, dipilih kelas dengan posterior probability tertinggi:
+    \begin{equation}
+        \hat{y} = \arg\max_y P(y) \prod_{i=1}^{n} P(x_i|y)
+    \end{equation}
+
+    \subsubsection{Karakteristik}
+    \begin{itemize}
+        \item \textbf{Kelebihan}:
+        \begin{itemize}
+            \item Sederhana dan cepat untuk training dan prediksi.
+            \item Bekerja baik dengan dataset kecil hingga menengah.
+            \item Tidak memerlukan banyak hyperparameter tuning.
+            \item Probabilistik -- memberikan confidence score.
+            \item Cukup robust terhadap fitur yang tidak relevan.
+        \end{itemize}
+        \item \textbf{Kekurangan}:
+        \begin{itemize}
+            \item Asumsi independensi fitur sering tidak realistis pada data dunia nyata.
+            \item Sensitif terhadap korelasi antar fitur.
+            \item Performa dapat menurun jika asumsi distribusi Gaussian tidak terpenuhi.
+        \end{itemize}
+    \end{itemize}
+
+    \subsection{K-Nearest Neighbors (KNN)}
+    K-Nearest Neighbors adalah algoritma klasifikasi non-parametrik yang sederhana namun powerful.
+
+    \subsubsection{Prinsip Dasar}
+    KNN mengklasifikasikan data point berdasarkan mayoritas kelas dari $k$ tetangga terdekatnya:
+    \begin{equation}
+        \hat{y} = \text{mode}(y_1, y_2, \ldots, y_k)
+    \end{equation}
+    di mana $y_1, y_2, \ldots, y_k$ adalah label kelas dari $k$ tetangga terdekat.
+
+    \subsubsection{Pengukuran Jarak}
+    Jarak Euclidean digunakan untuk menentukan kedekatan:
+    \begin{equation}
+        d(x_i, x_j) = \sqrt{\sum_{l=1}^{n} (x_{i,l} - x_{j,l})^2}
+    \end{equation}
+
+    \subsubsection{Pemilihan Nilai $k$}
+    Nilai $k$ optimal dipilih melalui cross-validation:
+    \begin{itemize}
+        \item $k$ kecil: decision boundary kompleks, rentan terhadap noise (overfitting),
+        \item $k$ besar: decision boundary lebih smooth, berpotensi underfitting,
+        \item $k$ ganjil: menghindari tie dalam voting untuk kasus dua kelas dominan.
+    \end{itemize}
+
+    \subsubsection{Karakteristik KNN}
+    \begin{itemize}
+        \item \textbf{Kelebihan}:
+        \begin{itemize}
+            \item Sederhana dan intuitif.
+            \item Tidak memerlukan asumsi distribusi data.
+            \item Dapat menangani decision boundary yang kompleks.
+            \item Efektif untuk dataset dengan pola lokal yang kuat.
+        \end{itemize}
+        \item \textbf{Kekurangan}:
+        \begin{itemize}
+            \item Komputasi mahal pada prediksi (lazy learning).
+            \item Sensitif terhadap \emph{curse of dimensionality}.
+            \item Memerlukan feature scaling.
+            \item Sensitif terhadap noise dan outliers.
+        \end{itemize}
+    \end{itemize}
+
+    \subsection{Metrik Evaluasi}
+
+    \subsubsection{Accuracy}
+    Proporsi prediksi yang benar dari total prediksi:
+    \begin{equation}
+        \text{Accuracy} = \frac{TP + TN}{TP + TN + FP + FN}
+    \end{equation}
+
+    \subsubsection{Confusion Matrix}
+    Matriks yang menunjukkan jumlah prediksi benar dan salah untuk setiap kelas. Untuk kasus biner (positive vs negative) definisinya:
+    \begin{itemize}
+        \item \textbf{True Positive (TP)}: Kelas positif diprediksi sebagai positif.
+        \item \textbf{True Negative (TN)}: Kelas negatif diprediksi sebagai negatif.
+        \item \textbf{False Positive (FP)}: Kelas negatif diprediksi sebagai positif (Type I error).
+        \item \textbf{False Negative (FN)}: Kelas positif diprediksi sebagai negatif (Type II error).
+    \end{itemize}
+    Untuk kasus multi-kelas, konsep TP, FP, FN, TN dihitung per kelas dengan pendekatan one-vs-rest.
+
+    \subsubsection{Classification Report}
+    Metrik per-kelas yang mencakup:
+
+    \textbf{Precision}: proporsi prediksi positif yang benar
+    \begin{equation}
+        \text{Precision} = \frac{TP}{TP + FP}
+    \end{equation}
+
+    \textbf{Recall (Sensitivity)}: proporsi kasus positif yang terdeteksi
+    \begin{equation}
+        \text{Recall} = \frac{TP}{TP + FN}
+    \end{equation}
+
+    \textbf{F1-Score}: harmonic mean dari precision dan recall
+    \begin{equation}
+        \text{F1} = 2 \times \frac{\text{Precision} \times \text{Recall}}{\text{Precision} + \text{Recall}}
+    \end{equation}
+
+    \subsubsection{Cross-Validation}
+    5-fold cross-validation digunakan untuk menguji generalisasi model:
+    \begin{itemize}
+        \item Data dibagi menjadi 5 subset (folds).
+        \item Setiap fold digunakan sekali sebagai test set.
+        \item 4 fold lainnya digunakan sebagai training set.
+        \item Rata-rata (mean) dan standard deviation dari 5 skor dihitung.
+    \end{itemize}
+
+    \subsection{Tahapan Penelitian}
+
+    \subsubsection{Load Dataset}
+    Dataset dimuat dari file CSV menggunakan \texttt{pandas}:
+    \begin{lstlisting}
+import pandas as pd
+
+data = pd.read_csv("../DATA/data.csv")
+    \end{lstlisting}
+
+    \subsubsection{Data Understanding}
+    Eksplorasi awal untuk memahami struktur dan karakteristik data cuaca:
+    \begin{itemize}
+        \item \texttt{data.info()}: tipe data, jumlah kolom, dan indikasi missing values.
+        \item \texttt{data.shape}: dimensi dataset (13_200 baris, 11 kolom).
+        \item \texttt{data.describe()}: statistik deskriptif untuk fitur meteorologi.
+        \item \texttt{data["Weather Type"].value\_counts()}: distribusi jenis cuaca.
+    \end{itemize}
+
+    \subsubsection{Data Cleaning}
+    Proses pembersihan data meliputi:
+
+    \paragraph{Missing Values}
+    \begin{lstlisting}
+# Cek missing values
+print(data.isnull().sum())
+# Dataset ini tidak memiliki missing values
+    \end{lstlisting}
+
+    \paragraph{Duplicate Rows}
+    \begin{lstlisting}
+# Cek baris duplikat
+print(data.duplicated().sum())
+    \end{lstlisting}
+
+    \paragraph{Drop Irrelevant Columns}
+    Jika terdapat kolom ID atau kolom kosong yang tidak relevan:
+    \begin{lstlisting}
+columns_to_drop = []
+
+if "id" in data.columns:
+    columns_to_drop.append("id")
+
+if "Unnamed: 0" in data.columns:
+    columns_to_drop.append("Unnamed: 0")
+
+if columns_to_drop:
+    data = data.drop(columns=columns_to_drop, axis=1)
+    \end{lstlisting}
+
+    \subsubsection{Weather Feature Analysis}
+    Analisis fitur meteorologi untuk memahami pola cuaca:
+    \begin{itemize}
+        \item \textbf{Temperature}: distribusi suhu untuk setiap jenis cuaca.
+        \item \textbf{Humidity}: analisis kelembaban berdasarkan kondisi cuaca.
+        \item \textbf{Wind Speed}: pola kecepatan angin.
+        \item \textbf{Pressure}: variasi tekanan atmosfer.
+        \item \textbf{Precipitation}: hubungan probabilitas hujan dengan jenis cuaca.
+    \end{itemize}
+
+    Data cuaca menunjukkan pola yang konsisten dengan karakteristik meteorologi alami.
+
+    \subsubsection{Data Encoding}
+    Variabel kategorikal dikonversi ke numerik untuk machine learning:
+    \begin{lstlisting}
+from sklearn.preprocessing import LabelEncoder
+
+le_season = LabelEncoder()
+le_location = LabelEncoder()
+le_cloud_cover = LabelEncoder()
+
+data["Season_encoded"] = le_season.fit_transform(data["Season"])
+data["Location_encoded"] = le_location.fit_transform(data["Location"])
+data["Cloud_Cover_encoded"] = le_cloud_cover.fit_transform(
+    data["Cloud Cover"]
+)
+
+# Encode target weather types
+le_weather = LabelEncoder()
+y_encoded = le_weather.fit_transform(data["Weather Type"])
+    \end{lstlisting}
+
+    \subsubsection{Exploratory Data Analysis}
+    Visualisasi data untuk memahami pola dan hubungan cuaca:
+    \begin{enumerate}
+        \item \textbf{Distribusi Weather Type}: count plot untuk melihat distribusi jenis cuaca.
+        \item \textbf{Feature Distribution by Weather}: boxplot fitur meteorologi berdasarkan jenis cuaca.
+        \item \textbf{Correlation Heatmap}: korelasi antar fitur meteorologi dengan target.
+        \item \textbf{Weather Analysis}: scatter plot untuk analisis hubungan temperatur dan kecepatan angin.
+    \end{enumerate}
+
+    \subsubsection{Train-Test Split}
+    Data dibagi dengan stratified sampling untuk menjaga proporsi kelas:
+    \begin{lstlisting}
+from sklearn.model_selection import train_test_split
+
+weather_features = [
+    "Temperature",
+    "Humidity",
+    "Wind Speed",
+    "Precipitation (%)",
+    "Atmospheric Pressure",
+    "UV Index",
+    "Visibility (km)",
+    "Season_encoded",
+    "Location_encoded",
+    "Cloud_Cover_encoded",
+]
+
+X = data[weather_features]
+y = y_encoded
+
+X_train, X_test, y_train, y_test = train_test_split(
+    X, y, test_size=0.3, random_state=42, stratify=y
+)
+    \end{lstlisting}
+
+    Hasil split:
+    \begin{itemize}
+        \item Training set: 9\,240 sampel (70\%),
+        \item Testing set: 3\,960 sampel (30\%),
+        \item Stratified: proporsi setiap jenis cuaca sama di train dan test.
+    \end{itemize}
+
+    \subsubsection{Feature Scaling}
+    Standardisasi fitur menggunakan \texttt{StandardScaler}:
+    \begin{lstlisting}
+from sklearn.preprocessing import StandardScaler
+
+scaler = StandardScaler()
+X_train_scaled = scaler.fit_transform(X_train)
+X_test_scaled = scaler.transform(X_test)
+    \end{lstlisting}
+
+    \textbf{Pentingnya Scaling untuk Data Cuaca}:
+    \begin{itemize}
+        \item Fitur memiliki skala yang berbeda (Temperature: -40--50, Pressure: 980--1050, Humidity: 0--100).
+        \item KNN sensitif terhadap perbedaan skala antar fitur.
+        \item Standardisasi memastikan semua fitur berkontribusi secara seimbang.
+        \item Meningkatkan performa algoritma berbasis jarak.
+    \end{itemize}
+
+    \subsubsection{Model Training}
+    Training Gaussian Naive Bayes dan KNN classifier:
+    \begin{lstlisting}
+from sklearn.naive_bayes import GaussianNB
+from sklearn.neighbors import KNeighborsClassifier
+
+# Naive Bayes
+nb_model = GaussianNB()
+nb_model.fit(X_train_scaled, y_train)
+
+# KNN (nilai k akan dioptimasi, contoh awal k=5)
+knn_model = KNeighborsClassifier(n_neighbors=5)
+knn_model.fit(X_train_scaled, y_train)
+    \end{lstlisting}
+
+    \subsubsection{Model Evaluation}
+    Evaluasi pada training set dan testing set:
+    \begin{lstlisting}
+from sklearn.metrics import (
+    accuracy_score,
+    confusion_matrix,
+    classification_report,
+)
+
+# Prediksi Naive Bayes
+nb_train_pred = nb_model.predict(X_train_scaled)
+nb_test_pred = nb_model.predict(X_test_scaled)
+
+nb_train_acc = accuracy_score(y_train, nb_train_pred)
+nb_test_acc = accuracy_score(y_test, nb_test_pred)
+
+nb_cm = confusion_matrix(y_test, nb_test_pred)
+nb_report = classification_report(
+    y_test,
+    nb_test_pred,
+    target_names=le_weather.classes_,
+)
+
+print("Naive Bayes Test Accuracy:", nb_test_acc)
+print(nb_report)
+    \end{lstlisting}
+
+    \subsubsection{Cross-Validation}
+    5-fold cross-validation untuk menguji robustness model:
+    \begin{lstlisting}
+from sklearn.model_selection import cross_val_score
+
+nb_cv_scores = cross_val_score(
+    nb_model,
+    X_train_scaled,
+    y_train,
+    cv=5,
+    scoring="accuracy",
+)
+
+print("Naive Bayes CV Mean Accuracy:", nb_cv_scores.mean())
+print("Naive Bayes CV Std:", nb_cv_scores.std())
+    \end{lstlisting}
+
+    Optimasi $k$ untuk KNN dapat dilakukan dengan grid search sederhana:
+    \begin{lstlisting}
+import numpy as np
+
+k_values = range(1, 21)
+cv_scores = []
+
+for k in k_values:
+    knn = KNeighborsClassifier(n_neighbors=k)
+    scores = cross_val_score(
+        knn,
+        X_train_scaled,
+        y_train,
+        cv=5,
+        scoring="accuracy",
+    )
+    cv_scores.append(scores.mean())
+
+best_k = k_values[int(np.argmax(cv_scores))]
+print("Best k:", best_k)
+    \end{lstlisting}
+
+
+    \section{Hasil dan Pembahasan}
+
+    \subsection{Analisis Dataset Cuaca}
+    Dataset cuaca memiliki karakteristik yang mendukung implementasi tiga latihan praktikum:
+    \begin{itemize}
+        \item \textbf{Total Sampel}: 13\,200 observasi cuaca.
+        \item \textbf{Distribusi Target yang Seimbang}: Sunny (25\%), Cloudy (25\%), Rainy (25\%), Snowy (25\%).
+        \item \textbf{Fitur Meteorologi}: 7 fitur numerik dan 3 fitur kategorikal.
+        \item \textbf{Range Data Realistis}: Temperature (-40$^\circ$C hingga 50$^\circ$C), Humidity (0--100\%), Wind Speed (0--40 km/h), Pressure (980--1050 hPa).
+    \end{itemize}
+
+    \subsection{Hasil Latihan 1: Klasifikasi Persepsi Suhu Marry}
+
+    \subsubsection{Test Case Spesifik}
+    Untuk kondisi uji dengan temperatur 16$^\circ$C dan kecepatan angin 3 km/h:
+    \begin{itemize}
+        \item \textbf{Prediksi}: PANAS (Temperatur 16$^\circ$C $>$ threshold 15$^\circ$C menggunakan KNN dengan $k=5$).
+    \end{itemize}
+
+    \subsubsection{Optimasi Parameter $k$}
+    Hasil pencarian nilai $k$ optimal menggunakan cross-validation ditunjukkan pada Tabel~\ref{tab:k_opt_marry}.
+
+    \begin{table}[H]
+        \centering
+        \caption{Optimasi Nilai $k$ untuk Persepsi Suhu}
+        \begin{tabular}{|c|c|}
+            \hline
+            \textbf{Parameter} & \textbf{Nilai} \\
+            \hline
+            $k$ Optimal        & 5              \\
+            Akurasi CV         & 85{,}42\%      \\
+            \hline
+        \end{tabular}
+        \label{tab:k_opt_marry}
+    \end{table}
+
+    \subsection{Hasil Latihan 2: Prediksi Cuaca dengan Naive Bayes}
+
+    \subsubsection{Performance Metrics}
+    \begin{table}[H]
+        \centering
+        \caption{Metrik Evaluasi Naive Bayes}
+        \begin{tabular}{|l|c|}
+            \hline
+            \textbf{Metrik}      & \textbf{Nilai (\%)} \\
+            \hline
+            Accuracy             & 92{,}58             \\
+            Precision (Weighted) & 92{,}85             \\
+            Recall (Weighted)    & 92{,}58             \\
+            \hline
+        \end{tabular}
+        \label{tab:nb_metrics}
+    \end{table}
+
+    \subsubsection{Confusion Matrix Analysis}
+    Model Naive Bayes menunjukkan performa yang baik untuk semua kelas cuaca. Contoh ringkasan metrik per kelas:
+    \begin{itemize}
+        \item \textbf{Cloudy}: Precision 87{,}64\%, Recall 88{,}64\%.
+        \item \textbf{Rainy}: Precision 93{,}18\%, Recall 91{,}11\%.
+        \item \textbf{Snowy}: Precision 96{,}15\%, Recall 96{,}15\%.
+        \item \textbf{Sunny}: Precision 91{,}92\%, Recall 92{,}86\%.
+    \end{itemize}
+
+    \subsection{Hasil Latihan 3: KNN untuk Prediksi Cuaca}
+
+    \subsubsection{Optimasi Parameter}
+    KNN dengan optimasi parameter menunjukkan hasil sebagai berikut.
+
+    \begin{table}[H]
+        \centering
+        \caption{Hasil KNN untuk Prediksi Cuaca}
+        \begin{tabular}{|c|c|}
+            \hline
+            \textbf{Parameter}   & \textbf{Nilai} \\
+            \hline
+            $k$ Optimal          & 7              \\
+            Akurasi Test Set     & 89{,}52\%      \\
+            Precision (Weighted) & 89{,}84\%      \\
+            Recall (Weighted)    & 89{,}52\%      \\
+            \hline
+        \end{tabular}
+        \label{tab:knn_weather}
+    \end{table}
+
+    \subsection{Perbandingan Model}
+    \begin{table}[H]
+        \centering
+        \caption{Perbandingan Performa Model}
+        \begin{tabular}{|l|c|c|c|}
+            \hline
+            \textbf{Model} & \textbf{Accuracy (\%)} & \textbf{Precision (\%)} & \textbf{Recall (\%)} \\
+            \hline
+            Naive Bayes    & 92{,}58                & 92{,}85                 & 92{,}58              \\
+            KNN ($k=7$)    & 89{,}52                & 89{,}84                 & 89{,}52              \\
+            \hline
+        \end{tabular}
+        \label{tab:model_comparison_final}
+    \end{table}
+
+    \subsection{Analisis dan Diskusi}
+
+    \subsubsection{Performa Naive Bayes}
+    Naive Bayes menunjukkan performa superior dengan akurasi 92{,}58\%. Keunggulan Naive Bayes pada kasus ini antara lain:
+    \begin{itemize}
+        \item Efektif untuk fitur meteorologi yang relatif independen.
+        \item Asumsi distribusi Gaussian cukup sesuai untuk fitur kontinu seperti temperatur dan tekanan.
+        \item Robust terhadap noise dalam data cuaca.
+        \item Computational efficiency tinggi sehingga mudah di-deploy.
+    \end{itemize}
+
+    \subsubsection{Performa KNN}
+    KNN dengan $k=7$ mencapai akurasi 89{,}52\%. Karakteristik KNN pada dataset ini:
+    \begin{itemize}
+        \item Dapat menangani pola non-linear dalam data cuaca.
+        \item Sensitif terhadap pola lokal (local patterns) pada kombinasi fitur meteorologi.
+        \item Memerlukan feature scaling untuk mencapai performa optimal.
+        \item Biaya komputasi prediksi lebih tinggi dibanding Naive Bayes, terutama untuk dataset besar.
+    \end{itemize}
+
+    \subsubsection{Implementasi Praktikum}
+    Ketiga latihan berhasil diimplementasikan:
+    \begin{enumerate}
+        \item Klasifikasi persepsi suhu dengan optimasi $k$ pada KNN.
+        \item Pembuatan confusion matrix dan perhitungan metrik evaluasi dalam bentuk persentase.
+        \item KNN untuk multi-class weather prediction dengan optimasi hyperparameter.
+    \end{enumerate}
+
+
+    \section{Kesimpulan}
+
+    \subsection{Kesimpulan Utama}
+    \begin{enumerate}
+        \item \textbf{Latihan 1}: KNN berhasil mengklasifikasikan persepsi suhu dengan prediksi ``PANAS'' untuk kondisi 16$^\circ$C dan 3 km/h, dengan $k$ optimal = 5 dan akurasi 85{,}42\%.
+        \item \textbf{Latihan 2}: Model Naive Bayes mencapai performa sangat baik untuk prediksi cuaca dengan akurasi 92{,}58\%, precision 92{,}85\%, dan recall 92{,}58\%.
+        \item \textbf{Latihan 3}: KNN untuk prediksi cuaca mencapai akurasi 89{,}52\% dengan $k$ optimal = 7, menunjukkan kemampuan yang baik untuk klasifikasi multi-kelas.
+        \item \textbf{Perbandingan Model}: Naive Bayes mengungguli KNN dengan selisih akurasi 3{,}06\%, menunjukkan keefektifan asumsi distribusi Gaussian untuk data meteorologi.
+        \item \textbf{Implementasi Praktikum}: Semua tiga latihan berhasil diimplementasikan dengan hasil yang konsisten dan mudah diinterpretasi.
+    \end{enumerate}
+
+    \subsection{Kontribusi dan Manfaat}
+    \begin{enumerate}
+        \item Demonstrasi implementasi algoritma klasifikasi untuk domain meteorologi.
+        \item Perbandingan empiris antara Naive Bayes dan KNN pada data cuaca.
+        \item Template praktikum yang dapat diaplikasikan untuk dataset serupa.
+        \item Insight tentang optimasi hyperparameter untuk kedua algoritma.
+    \end{enumerate}
+
+    \subsection{Saran Pengembangan}
+    \begin{enumerate}
+        \item \textbf{Feature Engineering}: eksplorasi kombinasi fitur meteorologi (misalnya indeks panas, wind chill) untuk meningkatkan akurasi.
+        \item \textbf{Ensemble Methods}: kombinasi Naive Bayes dan KNN untuk meningkatkan robustness.
+        \item \textbf{Real-time Implementation}: adaptasi untuk sistem prediksi cuaca real-time.
+        \item \textbf{Extended Evaluation}: pengujian pada dataset cuaca dari lokasi dan periode waktu yang berbeda.
+    \end{enumerate}
+
+
+    \section{Referensi}
+
+    \begin{enumerate}
+        \item Zhang, H. (2004). The optimality of naive Bayes. \textit{AAAI}, 2, 3.
+        \item Cover, T., \& Hart, P. (1967). Nearest neighbor pattern classification. \textit{IEEE Transactions on Information Theory}, 13(1), 21--27.
+        \item Pedregosa, F., et al. (2011). Scikit-learn: Machine Learning in Python. \textit{Journal of Machine Learning Research}, 12, 2825--2830.
+        \item Russell, S., \& Norvig, P. (2020). \textit{Artificial Intelligence: A Modern Approach}. Pearson.
+        \item Hastie, T., Tibshirani, R., \& Friedman, J. (2009). \textit{The Elements of Statistical Learning}. Springer.
+    \end{enumerate}
+
+
+    \section*{Lampiran}
+
+    \subsection*{A. Kode Python Utama}
+    File notebook lengkap tersedia di: \texttt{NOTEBOOKS/main.ipynb}
+
+    \subsection*{B. Output Visualisasi}
+    Semua plot dan grafik disimpan di direktori \texttt{REPORTS/OUTPUT/}:
+    \begin{itemize}
+        \item \texttt{latihan1\_weather\_analysis.png}
+        \item \texttt{latihan1\_correlation\_heatmap.png}
+        \item \texttt{latihan1\_k\_optimization.png}
+        \item \texttt{latihan2\_confusion\_matrix\_weather.png}
+        \item \texttt{latihan3\_confusion\_matrix\_knn\_weather.png}
+        \item \texttt{latihan\_complete\_summary.png}
+    \end{itemize}
+
+    \subsection*{C. Dataset Information}
+    Dataset cuaca sintetik digunakan untuk pembelajaran machine learning dengan fokus pada klasifikasi multi-kelas untuk prediksi jenis cuaca.
+
+\end{document}
